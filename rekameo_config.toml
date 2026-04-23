@@ -1,0 +1,24 @@
+# rekameo - ReXGlue Codegen Configuration
+#
+# Top-level codegen config. `rexglue migrate` reads this to produce
+# the contents of generated/.
+#
+# Splits into config/*.toml so each concern (CRT shims, named functions,
+# runtime hooks, midasm patches, etc.) can live in its own file.
+
+includes = [
+    "config/rekameo_crt.toml",
+    "config/rekameo_ctx_ctr.toml",
+    "config/rekameo_functions.toml",
+    "config/rekameo_midasm.toml",
+    "config/rekameo_hooked.toml"
+]
+
+project_name = "rekameo"
+file_path = "assets/default.xex"
+out_directory_path = "generated"
+
+# Note: setjmp_address / longjmp_address are intentionally omitted.
+# ReXGlue >= 0.7.7 handles setjmp/longjmp internally via a host-side
+# jmp_buf side-table keyed on the guest buffer address, so the game's
+# own _setjmp/_longjmp symbols don't need to be called out here.

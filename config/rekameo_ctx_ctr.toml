@@ -1,0 +1,19 @@
+# rekameo - context-saved / crash-fix function list
+#
+# Functions listed here will have full PPC context preserved around the
+# recompiled call. This is how TiP-Recomp handles "crash fix" entries:
+# add a guest function address here and the generated code will keep the
+# context live across that call, letting hand-written hooks poke at
+# registers or skip bad code paths.
+#
+# Add one entry per function address. Comments describe why the entry
+# exists so future maintainers know which crash / behaviour it guards.
+#
+# Example syntax:
+#   0x00000000 = {}                          # <reason or symbol name>
+#
+# Populate after reverse engineering Kameo: Elements of Power.
+
+[functions]
+
+# 0x00000000 = {}   # <describe the crash or behaviour this entry guards>

@@ -1,0 +1,20 @@
+# rekameo - named guest functions
+#
+# Functions that don't have runtime hooks but whose symbols we want
+# preserved in the generated code for readability / debugging.
+# Give each a descriptive name so generated code and logs are navigable.
+#
+# Suggested prefix: rex_<systemArea><FunctionName>_<AddressHex>
+#
+# Example:
+#   0x00000000 = {name = "rex_sceneMainDrawScene_00000000"}
+#
+# Populate after reverse engineering Kameo's default.xex.
+
+[functions]
+
+# Unresolved-jump target that rexglue's analyzer can't attribute to a
+# function on its own. Disassembly confirms it's the head of a
+# switch-dispatch helper that several sites tail-call into via `b`.
+# Naming it forces it to be treated as a function entry.
+0x822F9158 = {name = "rex_sub_822F9158"}

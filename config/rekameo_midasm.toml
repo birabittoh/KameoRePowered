@@ -1,0 +1,29 @@
+# rekameo - mid-assembly hooks
+#
+# These are inline patches applied at specific instruction addresses.
+# Useful for:
+#   * counting frame ticks at a known call-site
+#   * swapping a register value after a specific instruction
+#   * redirecting a conditional branch unconditionally
+#   * skipping blocks of code entirely
+#
+# Each entry generates a C++ function named `<name>` that you implement
+# in src/kameo_engine/hooks.cpp. The generated code calls it at the
+# specified address.
+#
+# Fields:
+#   address              = guest virtual address of the target instruction
+#   name                 = hook function name (must be unique)
+#   registers            = PPC registers exposed to the host hook ("r3", etc.)
+#   after_instruction    = true to run after the instruction, false before
+#   jump_address_on_true = (optional) redirect control flow to this address
+#                          when the hook returns true
+#
+# Populate after reverse engineering Kameo's default.xex.
+
+# Example:
+# [[midasm_hook]]
+# address = 0x00000000
+# name = "CPU_fps_hook"
+# registers = []
+# after_instruction = true

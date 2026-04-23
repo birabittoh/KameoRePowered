@@ -1,0 +1,17 @@
+# rekameo - functions with active runtime hooks
+#
+# Functions listed here get codegen wiring so hand-written C++ hooks in
+# src/kameo_engine/ can intercept / replace them via REX_PPC_HOOK.
+#
+# For each entry here there should be a matching `REX_PPC_HOOK(<name>)`
+# in one of the .cpp files (see src/kameo_engine/hooks.cpp for examples).
+#
+# Example:
+#   0x00000000 = {name = "rex_appMainTickPreDraw_00000000"}
+#
+# Populate after reverse engineering Kameo's default.xex.
+
+[functions]
+
+# 0x00000000 = {name = "rex_appMainDraw_00000000"}
+# 0x00000000 = {name = "rex_appMainTickPreDraw_00000000"}

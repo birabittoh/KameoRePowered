@@ -1,0 +1,19 @@
+# rekameo runtime cvar configuration
+#
+# Auto-generated / hand-edited cvar values read at startup.
+# Any cvar defined in code with REXCVAR_DEFINE_* can be overridden here
+# or from the command line.
+
+SkipIntros = false
+enable_console = false
+log_level = "off"
+scribble_heap = true
+fullscreen = false
+vsync = false
+readback_memexport = false
+readback_memexport_fast = false
+d3d12_readback_resolve = false
+d3d12_submit_on_primary_buffer_end = false
+swap_post_effect = "fxaa_extreme"
+gpu_allow_invalid_fetch_constants = true
+present_letterbox = false

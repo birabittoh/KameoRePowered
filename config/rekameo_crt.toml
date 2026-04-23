@@ -1,0 +1,18 @@
+# rekameo CRT / Win32 stub mappings
+#
+# Intentionally empty. Kameo (XDK 2099, Oct 2005) imports only from
+# xboxkrnl.exe (148 functions) and xam.xex (65 functions). Every one of
+# those is already in ReXGlue's built-in ordinal table, so no manual
+# stub bindings are required.
+#
+# Viva Piñata: Trouble in Paradise was built against a much later XDK
+# that exposed Win32-flavoured wrappers (CreateFileA, ReadFile, etc.)
+# at game-local addresses; those needed the `[rexcrt]` table. Kameo
+# calls the kernel directly (NtCreateFile, NtReadFile, ...) so there
+# is nothing to reroute here.
+#
+# Only add entries below if a future ReXGlue version starts complaining
+# about an unresolved import, or if you want to override one of the
+# default stubs with a hand-rolled host implementation.
+
+[rexcrt]
