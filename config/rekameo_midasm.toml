@@ -21,9 +21,99 @@
 #
 # Populate after reverse engineering Kameo's default.xex.
 
-# Example:
-# [[midasm_hook]]
-# address = 0x00000000
-# name = "CPU_fps_hook"
-# registers = []
-# after_instruction = true
+[[midasm_hook]]
+address = 0x8251F320
+name = "xstart_Trace"
+registers = []
+after_instruction = false
+
+# Return from sub_82520178
+[[midasm_hook]]
+address = 0x8251F354
+name = "xstart_after_82520178"
+registers = []
+after_instruction = false
+
+# Return from sub_8251FFD0 / before sub_82529EF8
+[[midasm_hook]]
+address = 0x8251F35C
+name = "xstart_after_8251FFD0"
+registers = []
+after_instruction = false
+
+# Return from sub_82529EF8 / before sub_8251FF58
+[[midasm_hook]]
+address = 0x8251F360
+name = "xstart_after_82529EF8"
+registers = []
+after_instruction = false
+
+# Return from sub_8251FF58 / before sub_8251FE78
+[[midasm_hook]]
+address = 0x8251F364
+name = "xstart_after_8251FF58"
+registers = []
+after_instruction = false
+
+# Return from sub_8251FE78 (just before IntegrityCheck)
+[[midasm_hook]]
+address = 0x8251F36C
+name = "xstart_after_8251FE78"
+registers = []
+after_instruction = false
+
+# Vtable bctrl in sub_8230D160 — CTR = unregistered address (crash site)
+[[midasm_hook]]
+address = 0x8230D254
+name = "sub_8230D160_vtable_call"
+registers = ["r7"]
+after_instruction = false
+
+# Inside sub_8251FE78: bctrl calls (global C++ constructors)
+# r11 = function pointer about to be called
+[[midasm_hook]]
+address = 0x8251FEA4
+name = "static_init_call_1"
+registers = ["r11"]
+after_instruction = false
+
+[[midasm_hook]]
+address = 0x8251FEE0
+name = "static_init_call_2"
+registers = ["r11"]
+after_instruction = false
+
+[[midasm_hook]]
+address = 0x8251FF2C
+name = "static_init_call_3"
+registers = ["r11"]
+after_instruction = false
+
+# After IntegrityCheck returns
+[[midasm_hook]]
+address = 0x8251F370
+name = "xstart_after_IntegrityCheck"
+registers = ["r3"]
+after_instruction = false
+
+# After sub_826074C8 returns in sub_825F8A50 — logs r3 (the buffer ptr = field+44 of input obj).
+# If r3=0 here, the render object's buffer pointer at offset+44 is uninitialized.
+[[midasm_hook]]
+address = 0x825F8A84
+name = "render_825F8A50_buf_ptr"
+registers = ["r3", "r26"]
+after_instruction = false
+
+# Entry of sub_825F8A50 — log all key args (r3=self, r6=vertex_obj).
+[[midasm_hook]]
+address = 0x825F8A50
+name = "render_825F8A50_entry"
+registers = ["r3", "r4", "r5", "r6", "r7"]
+after_instruction = false
+
+# Entry of sub_826073A0 — logs what objects get their vertex buffer initialized.
+[[midasm_hook]]
+address = 0x826073A0
+name = "vbuf_init_826073A0_entry"
+registers = ["r3", "r4", "r5"]
+after_instruction = false

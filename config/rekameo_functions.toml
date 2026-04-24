@@ -18,3 +18,22 @@
 # switch-dispatch helper that several sites tail-call into via `b`.
 # Naming it forces it to be treated as a function entry.
 0x822F9158 = {name = "rex_sub_822F9158"}
+
+# Global constructor at 0x826CE5C0 — referenced directly by the .init_array
+# but absorbed as a gap-fill by codegen. Must be a named entry to be dispatched.
+0x826CE5C0 = {name = "rex_static_ctor_826CE5C0"}
+
+# Vtable entry at +20 of some object called from sub_8230D160 — gap-fill absorbed by codegen.
+0x82314A48 = {name = "rex_sub_82314A48"}
+
+# Called from 0x8230D290 and 0x82314E30 — gap-fill absorbed.
+0x82310CE0 = {name = "rex_sub_82310CE0"}
+
+# Called from sub_8231C340 (lr=0x8231C3C8) — gap-fill absorbed.
+0x82313D00 = {name = "rex_sub_82313D00"}
+
+# Called from 0x826C25E0 — gap-fill absorbed.
+0x826BC698 = {name = "rex_sub_826BC698"}
+
+# Audio callback called from XAudioWorker each frame (lr=0x8230F178) — gap-fill absorbed.
+0x82319228 = {name = "rex_sub_82319228"}

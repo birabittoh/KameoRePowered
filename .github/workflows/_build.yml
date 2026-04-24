@@ -1,0 +1,142 @@
+name: Build rekameo
+
+on:
+  workflow_call:
+    inputs:
+      publish_mode:
+        description: "'artifact' for CI workflow-artifact, 'release' for GitHub release"
+        required: true
+        type: string
+      artifact_name:
+        description: "Artifact name prefix when publish_mode is 'artifact'"
+        required: false
+        type: string
+        default: ""
+
+env:
+  REXSDK_TAG: v0.7.6
+  ASSETS_REPO: ${{ vars.ASSETS_REPO }}
+  ASSET_PATH: default.xex
+  ASSET_CACHE_KEY: codegen-assets-v1
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            runner: windows-latest
+            preset: win-amd64-relwithdebinfo
+            sdk_platform: win-amd64
+            sdk_dir: win-amd64
+            binary: out/build/win-amd64-relwithdebinfo/rekameo.exe
+            artifact: rekameo-windows-x64.exe
+
+          - platform: linux
+            runner: ubuntu-latest
+            preset: linux-amd64-relwithdebinfo
+            sdk_platform: linux-amd64
+            sdk_dir: linux-amd64
+            binary: out/build/linux-amd64-relwithdebinfo/rekameo
+            artifact: rekameo-linux-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
+          sudo apt-get install -y ninja-build libgtk-3-dev libx11-xcb-dev
+
+      - name: Install LLVM, CMake, Ninja (Windows)
+        if: matrix.platform == 'windows'
+        run: choco install llvm cmake ninja -y
+
+      - name: Set up sccache
+        uses: hendrikmuhs/ccache-action@v1.2.22
+        with:
+          variant: sccache
+          key: ${{ matrix.platform }}-amd64
+
+      - name: Download ReXGlue SDK (${{ env.REXSDK_TAG }})
+        shell: bash
+        run: |
+          ver="${{ env.REXSDK_TAG }}"
+          ver="${ver#v}"
+          url="https://github.com/rexglue/rexglue-sdk/releases/download/${{ env.REXSDK_TAG }}/rexglue-sdk-${ver}-${{ matrix.sdk_platform }}.zip"
+          curl -fL "$url" -o sdk.zip
+          unzip sdk.zip -d sdk
+
+      - name: Migrate (generate rexglue.cmake)
+        shell: bash
+        run: |
+          sdk/${{ matrix.sdk_dir }}/bin/rexglue migrate --app_root . rekameo_config.toml
+
+      - name: Cache XEX asset for codegen
+        id: asset-cache
+        uses: actions/cache@v5
+        with:
+          path: assets/${{ env.ASSET_PATH }}
+          key: ${{ env.ASSET_CACHE_KEY }}
+
+      - name: Fetch XEX asset
+        if: steps.asset-cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.ASSETS_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p assets
+          gh api -H "Accept: application/vnd.github.raw" \
+            "repos/${{ env.ASSETS_REPO }}/contents/${{ env.ASSET_PATH }}" \
+            > "assets/${{ env.ASSET_PATH }}"
+          size=$(wc -c < "assets/${{ env.ASSET_PATH }}")
+          echo "Fetched ${{ env.ASSET_PATH }} ($size bytes)"
+          [ "$size" -ge 1048576 ] || { echo "Asset too small — fetch likely failed"; exit 1; }
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake --preset ${{ matrix.preset }} \
+            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/sdk/${{ matrix.sdk_dir }}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+
+      - name: Codegen
+        run: cmake --build --preset ${{ matrix.preset }} --target rekameo_codegen
+
+      - name: Reconfigure (pick up generated/sources.cmake)
+        shell: bash
+        run: |
+          cmake --preset ${{ matrix.preset }} \
+            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/sdk/${{ matrix.sdk_dir }}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} -j
+
+      - name: sccache stats
+        if: always()
+        shell: bash
+        run: sccache --show-stats || true
+
+      - name: Upload workflow artifact
+        if: inputs.publish_mode == 'artifact'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.artifact_name }}-${{ matrix.platform }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error
+
+      - name: Upload release artifact
+        if: inputs.publish_mode == 'release'
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ matrix.platform }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error

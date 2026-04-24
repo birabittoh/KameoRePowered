@@ -12,6 +12,4 @@
 # Populate after reverse engineering Kameo's default.xex.
 
 [functions]
-
-# 0x00000000 = {name = "rex_appMainDraw_00000000"}
-# 0x00000000 = {name = "rex_appMainTickPreDraw_00000000"}
+0x8251F190 = {name = "rex_IntegrityCheck"}

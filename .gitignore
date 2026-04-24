@@ -22,6 +22,7 @@ src/main.cpp.bak
 
 # Runtime logs & drop-in files produced by Play*.bat
 /logs/
+rekameo
 rekameo.exe
 rekameo.pdb
 
