@@ -12,10 +12,21 @@ PINNED_MODE=false
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION_FILE="$SCRIPT_DIR/../.sdk-version"
 
-case "$(uname -m)" in
-  x86_64)  PLATFORM="linux-amd64" ;;
-  aarch64) PLATFORM="linux-arm64" ;;
-  *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+case "$OS" in
+  Linux)
+    case "$ARCH" in
+      x86_64)  PLATFORM="linux-amd64" ;;
+      aarch64) PLATFORM="linux-arm64" ;;
+      *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+    esac ;;
+  MINGW*|MSYS*|CYGWIN*)
+    case "$ARCH" in
+      x86_64) PLATFORM="win-amd64" ;;
+      *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+    esac ;;
+  *) echo "Unsupported OS: $OS" >&2; exit 1 ;;
 esac
 
 if $PINNED_MODE; then

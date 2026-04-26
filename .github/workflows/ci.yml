@@ -11,9 +11,19 @@ permissions:
   actions: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+    steps:
+      - name: Get short SHA
+        id: sha
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: prepare
     uses: ./.github/workflows/_build.yml
     with:
       publish_mode: artifact
-      artifact_name: kameo-${{ github.sha }}
+      artifact_name: kameo-${{ needs.prepare.outputs.short_sha }}
     secrets: inherit
