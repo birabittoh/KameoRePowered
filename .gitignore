@@ -21,6 +21,7 @@ src/main.cpp.bak
 /generated/
 
 # Runtime logs & drop-in files produced by Play*.bat
+/sdk/
 /logs/
 kameo
 kameo.exe

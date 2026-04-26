@@ -10,55 +10,40 @@ overlays, hooks) so the game runs natively and can be modded like a PC port.
 > **You must own the game.** This project does **not** ship any Kameo code,
 > data, or assets. You provide your own legally dumped `kameo.iso`.
 
-## Status
+## Building from scratch
 
-The game runs end-to-end on both Windows and Linux:
+### 0. Install dependencies
 
-- `rexglue codegen` produces recompiled C++ across ~15,000 functions with
-  zero unresolved imports.
-- Builds to a native `kameo.exe` (Windows) or `kameo` (Linux).
-- Full gameplay is reachable. Audio, graphics, and input work.
-- Language selection via `--user_language <id>` (see [Running](#running)).
-- Linux: SSE FP exception masking fixed via shadowed `rex/platform/fpscr.h`.
-
-## Prerequisites
-
-- **OS**: Windows 10/11 or Linux (x86_64)
-- **Clang**: 16+
-- **CMake + Ninja**: 3.25+
-- **ReXGlue SDK**: nightly `nightly-20260425-711d4d33` or newer
-- **extract-xiso**: to extract `kameo.iso`
-
-### Linux (Arch/CachyOS)
+#### Linux (Arch/CachyOS)
 ```bash
-paru -S clang cmake ninja vulkan-headers extract-xiso-git
+paru -S clang cmake ninja vulkan-headers extract-xiso
 ```
 
-### Windows
+#### Windows
 ```powershell
 scoop install llvm cmake ninja
 ```
 
-## Building from scratch
-
 ### 1. Clone
 
 ```bash
-git clone https://github.com/birabittoh/kameo.git
-cd kameo
+git clone https://github.com/MaxDeadBear/ReKameo.git
+cd ReKameo
 ```
 
-### 2. Build and install the ReXGlue SDK
+### 2. Download the ReXGlue SDK
 
+**Linux:**
 ```bash
-git clone https://github.com/rexglue/rexglue-sdk.git
-cd rexglue-sdk
-git checkout nightly-20260425-711d4d33
-cmake --preset linux-amd64   # or win-amd64 on Windows
-cmake --build out/build/linux-amd64 --config Release -- -j$(nproc)
-cmake --install out/build/linux-amd64 --config Release --prefix out/install/linux-amd64
-cd ..
+bash scripts/download-sdk.sh
 ```
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\download-sdk.ps1
+```
+
+This downloads the latest nightly and installs it into `sdk/<platform>/`.
 
 ### 3. Provide your game
 
@@ -73,20 +58,20 @@ extract-xiso -x "Kameo - Elements of Power (USA).iso" -d assets/
 ### 4. Run codegen
 
 ```bash
-/path/to/rexglue-sdk/out/install/linux-amd64/bin/rexglue codegen kameo_config.toml
+sdk/linux-amd64/bin/rexglue codegen kameo_config.toml
 ```
 
 ### 5. Run migrate (generates `generated/rexglue.cmake`)
 
 ```bash
-/path/to/rexglue-sdk/out/install/linux-amd64/bin/rexglue migrate --app_root .
+sdk/linux-amd64/bin/rexglue migrate --app_root .
 ```
 
 ### 6. Build
 
 ```bash
 cmake --preset linux-amd64-release \
-  -DCMAKE_PREFIX_PATH="/path/to/rexglue-sdk/out/install/linux-amd64"
+  -DCMAKE_PREFIX_PATH="sdk/linux-amd64"
 cmake --build out/build/linux-amd64-release -- -j$(nproc)
 ```
 
