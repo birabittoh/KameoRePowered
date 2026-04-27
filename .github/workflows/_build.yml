@@ -64,11 +64,12 @@ jobs:
 
       - name: Download ReXGlue SDK
         shell: bash
-        run: bash scripts/download-sdk.sh sdk --pinned
+        run: python scripts/download-sdk.py sdk --pinned
 
       - name: Migrate (generate rexglue.cmake)
         shell: bash
         run: |
+          chmod +x sdk/${{ matrix.sdk_dir }}/bin/rexglue
           sdk/${{ matrix.sdk_dir }}/bin/rexglue migrate --app_root .
 
       - name: Cache XEX asset for codegen

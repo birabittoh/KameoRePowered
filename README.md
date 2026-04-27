@@ -50,7 +50,7 @@ This downloads the latest nightly and installs it into `sdk/<platform>/`.
 Extract your legally dumped ISO directly into `assets/`:
 
 ```bash
-extract-xiso -x "Kameo - Elements of Power (USA).iso" -d assets/
+extract-xiso -d assets "Kameo - Elements of Power (USA).iso"
 ```
 
 `assets/default.xex` must exist before running codegen.
@@ -61,18 +61,30 @@ extract-xiso -x "Kameo - Elements of Power (USA).iso" -d assets/
 sdk/linux-amd64/bin/rexglue codegen kameo_config.toml
 ```
 
+```powershell
+.\sdk\win-amd64\bin\rexglue.exe codegen .\kameo_config.toml
+```
+
 ### 5. Run migrate (generates `generated/rexglue.cmake`)
 
 ```bash
 sdk/linux-amd64/bin/rexglue migrate --app_root .
 ```
 
+```powershell
+.\sdk\win-amd64\bin\rexglue.exe migrate --app_root .
+```
+
 ### 6. Build
 
 ```bash
-cmake --preset linux-amd64-release \
-  -DCMAKE_PREFIX_PATH="sdk/linux-amd64"
+cmake --preset linux-amd64-release -DCMAKE_PREFIX_PATH="sdk/linux-amd64"
 cmake --build out/build/linux-amd64-release -- -j$(nproc)
+```
+
+```powershell
+cmake --preset win-amd64-release -DCMAKE_PREFIX_PATH="sdk/win-amd64"
+cmake --build out/build/win-amd64-release -- -j $env:NUMBER_OF_PROCESSORS
 ```
 
 Symlink assets into the build output so the binary can find them:
