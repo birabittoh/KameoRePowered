@@ -26,7 +26,7 @@ add_custom_target(kameo_icon DEPENDS "${ICON_HDR}")
 # Sources
 set(KAMEO_SOURCES
     src/main.cpp
-    src/kameo_hooks.cpp
+    src/kameorepowered_hooks.cpp
     ${GENERATED_SOURCES}
 )
 
@@ -42,5 +42,5 @@ add_dependencies(kameo kameo_icon)
 target_include_directories(kameo PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_compile_options(kameo PRIVATE
-    -include "${CMAKE_CURRENT_SOURCE_DIR}/src/kameo_hooks.h"
+    -include "${CMAKE_CURRENT_SOURCE_DIR}/src/kameorepowered_hooks.h"
 )

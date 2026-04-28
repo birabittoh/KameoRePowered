@@ -72,11 +72,17 @@ def main():
         action="store_true",
         help="Use pinned version from .sdk-version"
     )
+    parser.add_argument(
+        "--stable",
+        action="store_true",
+        help="Use latest stable (non-nightly) release"
+    )
 
     args = parser.parse_args()
 
     out_dir = args.out_dir
     pinned_mode = args.pinned
+    stable_mode = args.stable
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     version_file = os.path.normpath(os.path.join(script_dir, "../.sdk-version"))
@@ -94,6 +100,25 @@ def main():
         asset_url = next(
             a["browser_download_url"]
             for a in data["assets"]
+            if platform_id in a["name"]
+        )
+
+    elif stable_mode:
+        print(f"Fetching latest stable release for {platform_id}...")
+
+        releases = fetch_json(
+            f"https://api.github.com/repos/{REPO}/releases?per_page=20"
+        )
+
+        stable = next(
+            r for r in releases if not r["tag_name"].startswith("nightly-") and not r["prerelease"]
+        )
+
+        target_tag = stable["tag_name"]
+
+        asset_url = next(
+            a["browser_download_url"]
+            for a in stable["assets"]
             if platform_id in a["name"]
         )
 
