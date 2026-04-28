@@ -42,7 +42,13 @@ class KameoApp : public rex::ReXApp {
       "Russian",   // 12
     };
     uint32_t lang = REXCVAR_GET(user_language);
-    if (lang > 0 && lang < std::size(kLangFolders) && kLangFolders[lang]) {
+    if (lang == 0 || lang >= std::size(kLangFolders) || !kLangFolders[lang]) {
+      lang = 1;  // Default to English if argument is missing or invalid.
+    }
+    // No symlink needed for English (lang=1): the game hardcodes D:\english,
+    // which already resolves to the English folder. Registering english->English
+    // creates a cycle on case-insensitive filesystems.
+    if (lang > 1 && lang < std::size(kLangFolders) && kLangFolders[lang]) {
       auto* vfs = runtime()->file_system();
       std::string target = std::string("\\Device\\Harddisk0\\Partition1\\") + kLangFolders[lang];
       vfs->RegisterSymbolicLink("\\Device\\Harddisk0\\Partition1\\english", target);
