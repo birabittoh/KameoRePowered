@@ -147,14 +147,14 @@ The game writes logs into the `logs` directory by default, but you can configure
 ## Adding a hook
 
 1. Find the guest address in `default.xex`.
-2. Add to `kameo_config.toml`:
+2. Add to `kameorepowered_config.toml`:
 
    ```toml
    [functions]
    0x8XXXXXXX = {name = "MyFunction"}
    ```
 
-3. Implement in `src/kameo_hooks.cpp`:
+3. Implement in `src/kameorepowered_hooks.cpp`:
 
    ```cpp
    void MyFunction(PPCContext& ctx, uint8_t* base) {
@@ -174,7 +174,7 @@ registers = ["r3"]
 return = true
 ```
 
-Implement in `src/kameo_hooks.cpp`:
+Implement in `src/kameorepowered_hooks.cpp`:
 
 ```cpp
 void MyHook(PPCRegister& r3) {
