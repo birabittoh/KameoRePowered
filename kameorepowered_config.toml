@@ -7,6 +7,7 @@ project_name = "kameorepowered"
 file_path = "assets/default.xex"
 out_directory_path = "generated"
 
+
 setjmp_address  = 0x826CC0E0
 longjmp_address = 0x826CBFC0
 
@@ -112,6 +113,26 @@ address = 0x82250540
 name = "KameoShouldSkipNextDlcModelLoad"
 jump_address_on_true = 0x82250544
 
+[[midasm_hook]]
+address = 0x8230C050
+name = "KameoOverrideVolume"
+registers = ["r3", "f1"]
+
+[[midasm_hook]]
+address = 0x826D21B0
+name = "KameoOverrideBinkVolume"
+registers = ["r5"]
+
+[[midasm_hook]]
+address = 0x822646F0
+name = "KameoSetBinkLanguageTrackVolume"
+registers = ["r27", "r29"]
+
+[[midasm_hook]]
+address = 0x820B5228
+name = "KameoOverrideAudioLanguage"
+registers = ["r3"]
+
 [rexcrt]
 # Memory
 memcpy      = 0x82527D00
@@ -120,5 +141,6 @@ memset      = 0x82528270
 memcpy_s    = 0x8252A528
 memmove_s   = 0x8252A460
 XMemCpy     = 0x82528120
+
 
 
