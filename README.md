@@ -16,6 +16,8 @@ Get the latest stable build [here](https://github.com/MaxDeadBear/KameoRePowered
 
 Nightly builds are available [here](https://nightly.link/MaxDeadBear/KameoRePowered/workflows/ci/main?preview).
 
+Just place the downloaded executable next to the extracted `assets` directory and run it.
+
 ## Building from scratch
 
 ### 0. Install dependencies
@@ -84,7 +86,7 @@ cmake --build --preset linux-amd64-release -- -j$(nproc)
 
 ```powershell
 cmake --preset win-amd64-release -DCMAKE_PREFIX_PATH="sdk/win-amd64"
-cmake --build out/build/win-amd64-release -- -j $env:NUMBER_OF_PROCESSORS
+cmake --build --preset win-amd64-release -- -j $env:NUMBER_OF_PROCESSORS
 ```
 
 Symlink assets into the build output so the binary can find them:
@@ -93,11 +95,11 @@ Symlink assets into the build output so the binary can find them:
 ln -sf "$PWD/assets" out/build/linux-amd64-release/assets
 ```
 
-## Running
-
-```bash
-./out/build/linux-amd64-release/kameo
+```powershell
+New-Item -ItemType Junction -Path out/build/win-amd64-release/assets -Target "$PWD/assets"
 ```
+
+## Options
 
 ### Language selection
 
@@ -114,24 +116,25 @@ The game defaults to English. Pass `--user_language <id>` to switch:
 | 7  | Korean     |
 
 ```bash
-./out/build/linux-amd64-release/kameorepowered --user_language 6
+./kameorepowered --user_language 6
 ```
 
 ### GPU selection
 
-If you have multiple GPUs, force a specific one:
+If you have multiple GPUs, you can force a specific one:
 
 ```bash
-./out/build/linux-amd64-release/kameorepowered --vulkan_device 1
+./kameorepowered --vulkan_device 1
 ```
 
-List available devices by running without the flag — they are printed to
-the log on startup.
+List available devices by running the game without the flag.
 
 ### Logging
 
+The game writes logs into the `logs` directory by default, but you can configure it.
+
 ```bash
-./out/build/linux-amd64-release/kameorepowered --log_file kameo.log --log_level debug
+./kameorepowered --log_file kameo.log --log_level debug
 ```
 
 ## Adding a hook
@@ -171,17 +174,6 @@ void MyHook(PPCRegister& r3) {
     r3.u32 = 1;
 }
 ```
-
-## XEX overview (Kameo: Elements of Power, USA)
-
-| Field | Value |
-|---|---|
-| Load base | `0x82000000` |
-| Entry point | `0x8251F320` |
-| Image size | `0x00BF0000` (~12 MB loaded) |
-| Imports | `xboxkrnl.exe` (148 functions, 8 data), `xam.xex` (65 functions, 2 data) |
-| Decoded instructions | 1,621,549 across 2,141 code regions |
-| Discovered functions | ~15,000 (after call-graph, PDATA, vtable, gap-fill) |
 
 ## Credits
 
