@@ -1,10 +1,11 @@
 
-// kameo - ReXGlue Recompiled Project
+// kameorepowered - ReXGlue Recompiled Project
 //
 // This file is yours to edit. 'rexglue migrate' will NOT overwrite it.
 
-#include "kameo_init.h"
 
-#include "kameo_app.h"
+#include "generated/kameorepowered_init.h"
 
-REX_DEFINE_APP(kameo, KameoApp::Create)
+#include "kameorepowered_app.h"
+
+REX_DEFINE_APP(kameorepowered, KameorepoweredApp::Create)

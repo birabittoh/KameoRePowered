@@ -1,9 +1,7 @@
-## ReKameo - ignored files
-
 # Visual Studio / IDE droppings
 .vs/
 .vscode/
-ReKameo.code-workspace
+KameoRePowered.code-workspace
 
 # Build output
 /out/
@@ -23,9 +21,9 @@ src/main.cpp.bak
 # Runtime logs & drop-in files produced by Play*.bat
 /sdk/
 /logs/
-kameo
-kameo.exe
-kameo.pdb
+kameorepowered
+kameorepowered.exe
+kameorepowered.pdb
 
 # Game assets extracted from the user's ISO
 # (the ISO itself and anything derived from it must NEVER be committed)
@@ -39,3 +37,6 @@ kameo.pdb
 /tools/*
 !/tools/README.md
 !/tools/*.ps1
+
+# Locally built libraries
+/local/

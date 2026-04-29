@@ -1,6 +1,6 @@
 ---
 name: Patch / Mod request
-about: Suggest a patch or mod for ReKameo
+about: Suggest a patch or mod for KameoRePowered
 title: ''
 labels: enhancement
 assignees: ''

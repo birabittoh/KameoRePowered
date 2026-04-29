@@ -1,4 +1,4 @@
-# Kameo
+# Kameo: RePowered
 
 Static recompilation of **Kameo: Elements of Power** (Xbox 360) for Windows
 and Linux, built on the [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk).
@@ -10,13 +10,19 @@ overlays, hooks) so the game runs natively and can be modded like a PC port.
 > **You must own the game.** This project does **not** ship any Kameo code,
 > data, or assets. You provide your own legally dumped `kameo.iso`.
 
+## Using a pre-built release
+
+Get the latest stable build [here](https://github.com/MaxDeadBear/KameoRePowered/releases/latest).
+
+Nightly builds are available [here](https://nightly.link/MaxDeadBear/KameoRePowered/workflows/ci/main?preview).
+
 ## Building from scratch
 
 ### 0. Install dependencies
 
 #### Linux (Arch/CachyOS)
 ```bash
-paru -S clang cmake ninja vulkan-headers extract-xiso
+paru -S clang20 cmake ninja vulkan-headers extract-xiso
 ```
 
 #### Windows
@@ -27,20 +33,14 @@ scoop install llvm cmake ninja
 ### 1. Clone
 
 ```bash
-git clone https://github.com/MaxDeadBear/ReKameo.git
-cd ReKameo
+git clone https://github.com/MaxDeadBear/KameoRePowered.git
+cd KameoRePowered
 ```
 
 ### 2. Download the ReXGlue SDK
 
-**Linux:**
 ```bash
-bash scripts/download-sdk.sh
-```
-
-**Windows (PowerShell):**
-```powershell
-.\scripts\download-sdk.ps1
+python scripts/download-sdk.py
 ```
 
 This downloads the latest nightly and installs it into `sdk/<platform>/`.
@@ -58,11 +58,11 @@ extract-xiso -d assets "Kameo - Elements of Power (USA).iso"
 ### 4. Run codegen
 
 ```bash
-sdk/linux-amd64/bin/rexglue codegen kameo_config.toml
+sdk/linux-amd64/bin/rexglue codegen kameorepowered_config.toml
 ```
 
 ```powershell
-.\sdk\win-amd64\bin\rexglue.exe codegen .\kameo_config.toml
+.\sdk\win-amd64\bin\rexglue.exe codegen .\kameorepowered_config.toml
 ```
 
 ### 5. Run migrate (generates `generated/rexglue.cmake`)
@@ -79,7 +79,7 @@ sdk/linux-amd64/bin/rexglue migrate --app_root .
 
 ```bash
 cmake --preset linux-amd64-release -DCMAKE_PREFIX_PATH="sdk/linux-amd64"
-cmake --build out/build/linux-amd64-release -- -j$(nproc)
+cmake --build --preset linux-amd64-release -- -j$(nproc)
 ```
 
 ```powershell
@@ -114,7 +114,7 @@ The game defaults to English. Pass `--user_language <id>` to switch:
 | 7  | Korean     |
 
 ```bash
-./out/build/linux-amd64-release/kameo --user_language 6
+./out/build/linux-amd64-release/kameorepowered --user_language 6
 ```
 
 ### GPU selection
@@ -122,7 +122,7 @@ The game defaults to English. Pass `--user_language <id>` to switch:
 If you have multiple GPUs, force a specific one:
 
 ```bash
-./out/build/linux-amd64-release/kameo --vulkan_device 1
+./out/build/linux-amd64-release/kameorepowered --vulkan_device 1
 ```
 
 List available devices by running without the flag — they are printed to
@@ -131,27 +131,7 @@ the log on startup.
 ### Logging
 
 ```bash
-./out/build/linux-amd64-release/kameo --log_file kameo.log --log_level debug
-```
-
-## Repo layout
-
-```
-kameo/
-├── assets/              ← extracted ISO contents (gitignored)
-├── generated/           ← produced by rexglue codegen (gitignored)
-├── icon/                ← app.ico (embedded as window icon at runtime)
-├── rex/platform/        ← shadowed fpscr.h (fixes Linux SSE FP exceptions)
-├── src/
-│   ├── main.cpp
-│   ├── kameo_app.h      ← ReXApp subclass: language redirect, icon, hooks
-│   ├── kameo_hooks.h
-│   ├── kameo_hooks.cpp  ← midasm hooks: DLC, infinite energy/health, etc.
-│   └── kameo_dlc_swap.h
-├── .github/             ← CI and release workflows
-├── CMakeLists.txt
-├── CMakePresets.json
-└── kameo_config.toml    ← codegen config (functions, midasm hooks, rexcrt)
+./out/build/linux-amd64-release/kameorepowered --log_file kameo.log --log_level debug
 ```
 
 ## Adding a hook

@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a crash or incorrect behaviour in ReKameo
+about: Report a crash or incorrect behaviour in KameoRePowered
 title: ''
 labels: bug
 assignees: ''
@@ -22,11 +22,11 @@ What you expected to happen instead.
 If applicable, attach screenshots or a short clip.
 
 **Build info**
- - ReKameo version / commit:
+ - KameoRePowered version / commit:
  - Build config (Release / RelWithDebInfo / Debug):
  - OS: [e.g. Windows 11]
  - GPU: [e.g. RTX 4070]
  - CPU: [e.g. Ryzen 7 7800X3D]
 
 **Log file**
-Attach `logs/rekameo.log` if the bug is a crash or freeze.
+Attach `logs/kameo.log` if the bug is a crash or freeze.
