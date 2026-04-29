@@ -31,7 +31,7 @@ jobs:
             preset: win-amd64-relwithdebinfo
             sdk_platform: win-amd64
             sdk_dir: win-amd64
-            binary: out/build/win-amd64-relwithdebinfo/kameo.exe
+            binary: out/build/win-amd64-relwithdebinfo/kameorepowered.exe
             artifact: kameo-windows-x64.exe
 
           - platform: linux
@@ -39,7 +39,7 @@ jobs:
             preset: linux-amd64-relwithdebinfo
             sdk_platform: linux-amd64
             sdk_dir: linux-amd64
-            binary: out/build/linux-amd64-relwithdebinfo/kameo
+            binary: out/build/linux-amd64-relwithdebinfo/kameorepowered
             artifact: kameo-linux-x64
 
     steps:
@@ -102,7 +102,7 @@ jobs:
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
 
       - name: Codegen
-        run: cmake --build --preset ${{ matrix.preset }} --target kameo_codegen
+        run: cmake --build --preset ${{ matrix.preset }} --target kameorepowered_codegen
 
       - name: Reconfigure (pick up generated/sources.cmake)
         shell: bash
