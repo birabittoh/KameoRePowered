@@ -9,7 +9,12 @@
 #include <rex/cvar.h>
 #include <rex/rex_app.h>
 #include <rex/system/flags.h>
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <csignal>
+#include <ucontext.h>
+#endif
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -24,6 +29,8 @@
 #include "kameorepowered_dlc_swap.h"
 #include "kameorepowered_hooks.h"
 
+#include <rex/platform/fpscr.h>
+
 namespace {
 
 static std::atomic<uint64_t> g_kameo_fp_exception_count{0};
@@ -37,6 +44,7 @@ static std::atomic<uint64_t> g_kameo_fp_last_rip{0};
 // recompiled guest code raises an SEH fault on the host. This VEH catches
 // those faults on every thread, masks all SSE FP exceptions in the live
 // MXCSR, and resumes execution from the faulting instruction.
+#ifdef _WIN32
 static LONG WINAPI GuestFpExceptionHandler(EXCEPTION_POINTERS* ep) {
     switch (ep->ExceptionRecord->ExceptionCode) {
         case 0xC000008C:  // STATUS_FLOAT_DIVIDE_BY_ZERO
@@ -45,20 +53,46 @@ static LONG WINAPI GuestFpExceptionHandler(EXCEPTION_POINTERS* ep) {
         case 0xC000008F:  // STATUS_FLOAT_INEXACT_RESULT
         case 0xC0000090:  // STATUS_FLOAT_INVALID_OPERATION
         case 0xC0000091:  // STATUS_FLOAT_STACK_CHECK
-      g_kameo_fp_exception_count.fetch_add(1, std::memory_order_relaxed);
-      g_kameo_fp_last_code.store(ep->ExceptionRecord->ExceptionCode,
-                     std::memory_order_release);
-      g_kameo_fp_last_mxcsr.store(ep->ContextRecord->MxCsr,
-                    std::memory_order_release);
-      g_kameo_fp_last_rip.store(
-        reinterpret_cast<uint64_t>(ep->ExceptionRecord->ExceptionAddress),
-        std::memory_order_release);
+            g_kameo_fp_exception_count.fetch_add(1, std::memory_order_relaxed);
+            g_kameo_fp_last_code.store(ep->ExceptionRecord->ExceptionCode,
+                                       std::memory_order_release);
+            g_kameo_fp_last_mxcsr.store(ep->ContextRecord->MxCsr,
+                                        std::memory_order_release);
+            g_kameo_fp_last_rip.store(
+                reinterpret_cast<uint64_t>(ep->ExceptionRecord->ExceptionAddress),
+                std::memory_order_release);
             ep->ContextRecord->MxCsr |= _MM_MASK_MASK;
             return EXCEPTION_CONTINUE_EXECUTION;
         default:
             return EXCEPTION_CONTINUE_SEARCH;
     }
 }
+#else
+static void GuestFpExceptionHandler(int /*sig*/, siginfo_t* si, void* ctx) {
+    switch (si->si_code) {
+        case FPE_FLTDIV:
+        case FPE_FLTOVF:
+        case FPE_FLTUND:
+        case FPE_FLTRES:
+        case FPE_FLTINV:
+        case FPE_FLTSUB: {
+            auto* uc = static_cast<ucontext_t*>(ctx);
+            const uint32_t mxcsr = uc->uc_mcontext.fpregs->mxcsr;
+            g_kameo_fp_exception_count.fetch_add(1, std::memory_order_relaxed);
+            g_kameo_fp_last_code.store(static_cast<uint32_t>(si->si_code),
+                                       std::memory_order_release);
+            g_kameo_fp_last_mxcsr.store(mxcsr, std::memory_order_release);
+            g_kameo_fp_last_rip.store(
+                static_cast<uint64_t>(uc->uc_mcontext.gregs[REG_RIP]),
+                std::memory_order_release);
+            uc->uc_mcontext.fpregs->mxcsr |= _MM_MASK_MASK;
+            break;
+        }
+        default:
+            break;
+    }
+}
+#endif
 
 }  // namespace
 
@@ -90,6 +124,7 @@ static bool IsNativeKameoDlcSuffix(const std::string& suffix) {
 }
 
 static std::filesystem::path KameoActiveDlcPath() {
+#ifdef _WIN32
   char* user_profile = nullptr;
   size_t user_profile_len = 0;
   if (_dupenv_s(&user_profile, &user_profile_len, "USERPROFILE") != 0 ||
@@ -99,13 +134,18 @@ static std::filesystem::path KameoActiveDlcPath() {
     }
     return {};
   }
-
-  std::filesystem::path dlc_path =
-      std::filesystem::path(user_profile) / "Documents" / "kameo" /
+  std::filesystem::path base(user_profile);
+  std::free(user_profile);
+#else
+  const char* home = std::getenv("HOME");
+  if (!home || !home[0]) {
+    return {};
+  }
+  std::filesystem::path base(home);
+#endif
+  return base / "Documents" / "kameo" /
       "0000000000000000" / "4D5307D2" / "00000002" /
       "3315297F7EFF0B5B4589A164C1EA9AE17FC81EC04D";
-  std::free(user_profile);
-  return dlc_path;
 }
 
 static void SyncKameoDlcListForCustomModels() {
@@ -410,14 +450,30 @@ class KameorepoweredApp : public rex::ReXApp {
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
     SyncKameoDlcListForCustomModels();
+#ifdef _WIN32
     veh_handle_ = AddVectoredExceptionHandler(1, GuestFpExceptionHandler);
+#else
+    struct sigaction sa{};
+    sa.sa_sigaction = GuestFpExceptionHandler;
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+    auto* old_sa = new struct sigaction{};
+    sigaction(SIGFPE, &sa, old_sa);
+    veh_handle_ = old_sa;
+#endif
   }
 
   void OnShutdown() override {
     kameo_model_dialog_.reset();
     kameo_audio_dialog_.reset();
     if (veh_handle_) {
+#ifdef _WIN32
       RemoveVectoredExceptionHandler(veh_handle_);
+#else
+      auto* old_sa = static_cast<struct sigaction*>(veh_handle_);
+      sigaction(SIGFPE, old_sa, nullptr);
+      delete old_sa;
+#endif
       veh_handle_ = nullptr;
     }
   }

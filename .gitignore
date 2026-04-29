@@ -37,3 +37,6 @@ kameorepowered.pdb
 /tools/*
 !/tools/README.md
 !/tools/*.ps1
+
+# Locally built libraries
+/local/

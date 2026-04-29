@@ -185,6 +185,12 @@ def main():
     write_file(installed_version_file, target_tag)
     print(f"SDK installed to {dest_dir} ({target_tag})")
 
+    if platform.system() == "Linux":
+        bin_path = os.path.join(dest_dir, "bin", "rexglue")
+        if os.path.exists(bin_path):
+            os.chmod(bin_path, os.stat(bin_path).st_mode | 0o111)
+            print(f"Marked {bin_path} executable")
+
     if not pinned_mode:
         write_file(version_file, target_tag)
         print(f"Pinned version updated to {target_tag}")

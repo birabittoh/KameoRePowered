@@ -22,7 +22,7 @@ Nightly builds are available [here](https://nightly.link/MaxDeadBear/KameoRePowe
 
 #### Linux (Arch/CachyOS)
 ```bash
-paru -S clang cmake ninja vulkan-headers extract-xiso
+paru -S clang20 cmake ninja vulkan-headers extract-xiso
 ```
 
 #### Windows
@@ -40,11 +40,7 @@ cd KameoRePowered
 ### 2. Download the ReXGlue SDK
 
 ```bash
-# This works for both Windows and Linux
 python scripts/download-sdk.py
-
-# On Linux, also run:
-chmod +x sdk/linux-amd64/bin/rexglue
 ```
 
 This downloads the latest nightly and installs it into `sdk/<platform>/`.
@@ -83,7 +79,7 @@ sdk/linux-amd64/bin/rexglue migrate --app_root .
 
 ```bash
 cmake --preset linux-amd64-release -DCMAKE_PREFIX_PATH="sdk/linux-amd64"
-cmake --build out/build/linux-amd64-release -- -j$(nproc)
+cmake --build --preset linux-amd64-release -- -j$(nproc)
 ```
 
 ```powershell
