@@ -25,5 +25,5 @@ jobs:
     uses: ./.github/workflows/_build.yml
     with:
       publish_mode: artifact
-      artifact_name: kameo-${{ needs.prepare.outputs.short_sha }}
+      artifact_name: kameorepowered-dev_${{ needs.prepare.outputs.short_sha }}
     secrets: inherit

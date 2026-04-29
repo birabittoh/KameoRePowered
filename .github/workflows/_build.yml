@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: ""
+      tag:
+        description: "Release tag to embed in release artifact filenames"
+        required: false
+        type: string
+        default: ""
 
 env:
   ASSETS_REPO: ${{ vars.ASSETS_REPO }}
@@ -32,7 +37,8 @@ jobs:
             sdk_platform: win-amd64
             sdk_dir: win-amd64
             binary: out/build/win-amd64-relwithdebinfo/kameorepowered.exe
-            artifact: kameo-windows-x64.exe
+            artifact_suffix: windows-x64
+            artifact_ext: .exe
 
           - platform: linux
             runner: ubuntu-latest
@@ -40,7 +46,8 @@ jobs:
             sdk_platform: linux-amd64
             sdk_dir: linux-amd64
             binary: out/build/linux-amd64-release/kameorepowered
-            artifact: kameo-linux-x64
+            artifact_suffix: linux-x64
+            artifact_ext: ""
 
     steps:
       - name: Checkout
@@ -150,18 +157,28 @@ jobs:
         shell: bash
         run: sccache --show-stats || true
 
+      - name: Rename CI binary
+        if: inputs.publish_mode == 'artifact'
+        shell: bash
+        run: cp "${{ matrix.binary }}" "${{ inputs.artifact_name }}-${{ matrix.artifact_suffix }}${{ matrix.artifact_ext }}"
+
       - name: Upload workflow artifact
         if: inputs.publish_mode == 'artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_name }}-${{ matrix.platform }}
-          path: ${{ matrix.binary }}
+          name: ${{ inputs.artifact_name }}-${{ matrix.artifact_suffix }}
+          path: ${{ inputs.artifact_name }}-${{ matrix.artifact_suffix }}${{ matrix.artifact_ext }}
           if-no-files-found: error
+
+      - name: Rename release binary
+        if: inputs.publish_mode == 'release'
+        shell: bash
+        run: cp "${{ matrix.binary }}" "kameorepowered-${{ inputs.tag }}-${{ matrix.artifact_suffix }}${{ matrix.artifact_ext }}"
 
       - name: Upload release artifact
         if: inputs.publish_mode == 'release'
         uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
-          path: ${{ matrix.binary }}
+          path: kameorepowered-${{ inputs.tag }}-${{ matrix.artifact_suffix }}${{ matrix.artifact_ext }}
           if-no-files-found: error
