@@ -20,7 +20,7 @@ set(KAMEOREPOWERED_SOURCES
 )
 
 if(WIN32)
-    add_executable(kameorepowered WIN32 ${KAMEOREPOWERED_SOURCES})
+    add_executable(kameorepowered WIN32 ${KAMEOREPOWERED_SOURCES} icon/app.rc)
 else()
     add_executable(kameorepowered ${KAMEOREPOWERED_SOURCES})
 endif()

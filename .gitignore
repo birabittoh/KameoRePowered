@@ -1,9 +1,7 @@
-## ReKameo - ignored files
-
 # Visual Studio / IDE droppings
 .vs/
 .vscode/
-ReKameo.code-workspace
+KameoRePowered.code-workspace
 
 # Build output
 /out/

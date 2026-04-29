@@ -1,4 +1,4 @@
-# Kameo
+# Kameo: RePowered
 
 Static recompilation of **Kameo: Elements of Power** (Xbox 360) for Windows
 and Linux, built on the [ReXGlue SDK](https://github.com/rexglue/rexglue-sdk).
@@ -9,6 +9,12 @@ overlays, hooks) so the game runs natively and can be modded like a PC port.
 
 > **You must own the game.** This project does **not** ship any Kameo code,
 > data, or assets. You provide your own legally dumped `kameo.iso`.
+
+## Using a pre-built release
+
+Get the latest stable build [here](https://github.com/MaxDeadBear/KameoRePowered/releases/latest).
+
+Nightly builds are available [here](https://nightly.link/MaxDeadBear/KameoRePowered/workflows/ci/main?preview).
 
 ## Building from scratch
 
@@ -27,20 +33,18 @@ scoop install llvm cmake ninja
 ### 1. Clone
 
 ```bash
-git clone https://github.com/MaxDeadBear/ReKameo.git
-cd ReKameo
+git clone https://github.com/MaxDeadBear/KameoRePowered.git
+cd KameoRePowered
 ```
 
 ### 2. Download the ReXGlue SDK
 
-**Linux:**
 ```bash
-bash scripts/download-sdk.sh
-```
+# This works for both Windows and Linux
+python scripts/download-sdk.py
 
-**Windows (PowerShell):**
-```powershell
-.\scripts\download-sdk.ps1
+# On Linux, also run:
+chmod +x sdk/linux-amd64/bin/rexglue
 ```
 
 This downloads the latest nightly and installs it into `sdk/<platform>/`.
@@ -132,26 +136,6 @@ the log on startup.
 
 ```bash
 ./out/build/linux-amd64-release/kameorepowered --log_file kameo.log --log_level debug
-```
-
-## Repo layout
-
-```
-kameo/
-├── assets/              ← extracted ISO contents (gitignored)
-├── generated/           ← produced by rexglue codegen (gitignored)
-├── icon/                ← app.ico (embedded as window icon at runtime)
-├── rex/platform/        ← shadowed fpscr.h (fixes Linux SSE FP exceptions)
-├── src/
-│   ├── main.cpp
-│   ├── kameo_app.h      ← ReXApp subclass: language redirect, icon, hooks
-│   ├── kameo_hooks.h
-│   ├── kameo_hooks.cpp  ← midasm hooks: DLC, infinite energy/health, etc.
-│   └── kameo_dlc_swap.h
-├── .github/             ← CI and release workflows
-├── CMakeLists.txt
-├── CMakePresets.json
-└── kameo_config.toml    ← codegen config (functions, midasm hooks, rexcrt)
 ```
 
 ## Adding a hook
