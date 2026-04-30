@@ -26,7 +26,3 @@ else()
 endif()
 
 rexglue_setup_target(kameorepowered)
-
-target_compile_options(kameorepowered PRIVATE
-    -include "${CMAKE_CURRENT_SOURCE_DIR}/src/kameorepowered_hooks.h"
-)

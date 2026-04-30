@@ -60,42 +60,38 @@ extract-xiso -d assets "Kameo - Elements of Power (USA).iso"
 ### 4. Run codegen
 
 ```bash
-sdk/linux-amd64/bin/rexglue codegen kameorepowered_config.toml
-```
-
-```powershell
-.\sdk\win-amd64\bin\rexglue.exe codegen .\kameorepowered_config.toml
+sdk/bin/rexglue codegen kameorepowered_config.toml
 ```
 
 ### 5. Run migrate (generates `generated/rexglue.cmake`)
 
 ```bash
-sdk/linux-amd64/bin/rexglue migrate --app_root .
-```
-
-```powershell
-.\sdk\win-amd64\bin\rexglue.exe migrate --app_root .
+sdk/bin/rexglue migrate --app_root .
 ```
 
 ### 6. Build
 
 ```bash
-cmake --preset linux-amd64-release -DCMAKE_PREFIX_PATH="sdk/linux-amd64"
+# Linux
+cmake --preset linux-amd64-release -DCMAKE_PREFIX_PATH="sdk"
 cmake --build --preset linux-amd64-release -- -j$(nproc)
 ```
 
 ```powershell
-cmake --preset win-amd64-release -DCMAKE_PREFIX_PATH="sdk/win-amd64"
+# Windows
+cmake --preset win-amd64-release -DCMAKE_PREFIX_PATH="sdk"
 cmake --build --preset win-amd64-release -- -j $env:NUMBER_OF_PROCESSORS
 ```
 
 Symlink assets into the build output so the binary can find them:
 
 ```bash
+# Linux
 ln -sf "$PWD/assets" out/build/linux-amd64-release/assets
 ```
 
 ```powershell
+# Windows
 New-Item -ItemType Junction -Path out/build/win-amd64-release/assets -Target "$PWD/assets"
 ```
 

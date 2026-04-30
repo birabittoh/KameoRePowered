@@ -141,9 +141,7 @@ def main():
             if platform_id in a["name"]
         )
 
-    installed_version_file = os.path.join(
-        out_dir, platform_id, ".sdk-version"
-    )
+    installed_version_file = os.path.join(out_dir, ".sdk-version")
 
     if os.path.exists(installed_version_file):
         installed_version = read_file_trim(installed_version_file)
@@ -163,12 +161,6 @@ def main():
         with zipfile.ZipFile(zip_path, "r") as z:
             z.extractall(extract_dir)
 
-        os.makedirs(out_dir, exist_ok=True)
-
-        dest_dir = os.path.join(out_dir, platform_id)
-        if os.path.exists(dest_dir):
-            shutil.rmtree(dest_dir)
-
         inner_dirs = [
             d for d in os.listdir(extract_dir)
             if os.path.isdir(os.path.join(extract_dir, d))
@@ -176,6 +168,10 @@ def main():
 
         if not inner_dirs:
             raise RuntimeError("Unexpected archive structure")
+
+        dest_dir = out_dir
+        if os.path.exists(dest_dir):
+            shutil.rmtree(dest_dir)
 
         shutil.move(
             os.path.join(extract_dir, inner_dirs[0]),
