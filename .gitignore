@@ -24,6 +24,7 @@ src/main.cpp.bak
 kameorepowered
 kameorepowered.exe
 kameorepowered.pdb
+kameorepowered.toml
 
 # Game assets extracted from the user's ISO
 # (the ISO itself and anything derived from it must NEVER be committed)

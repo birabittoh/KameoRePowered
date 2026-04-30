@@ -104,6 +104,33 @@ vulkan_device = 1 # NVIDIA GPU
 user_language = 4 # French
 ```
 
+### Keyboard & mouse
+
+Keyboard and mouse controls are enabled by default. Default mapping:
+
+| Input | Xbox 360 button |
+|-------|----------------|
+| WASD | Left stick |
+| Mouse | Right stick (camera) |
+| `1` / `2` / `3` | X / Y / B |
+| Space | A |
+| Left click | LT |
+| Right click | RT |
+| Q / E | LB / RB |
+| Enter | Start |
+| Backspace | Back |
+| Arrow keys | D-Pad |
+
+All bindings are overridable via `kameorepowered.toml` (or CLI flags). For example:
+
+```toml
+keybind_a = "F"
+keybind_left_trigger = "LControl"
+mnk_sensitivity = 0.5
+```
+
+Mouse sensitivity is controlled by `mnk_sensitivity` (default `1.0`).
+
 ### Language selection
 
 The game defaults to English. Pass `--user_language <id>` to switch:
