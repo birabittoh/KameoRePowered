@@ -23,6 +23,10 @@ if(WIN32)
     add_executable(kameorepowered WIN32 ${KAMEOREPOWERED_SOURCES} icon/app.rc)
 else()
     add_executable(kameorepowered ${KAMEOREPOWERED_SOURCES})
+    set_target_properties(kameorepowered PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN"
+    )
 endif()
 
 rexglue_setup_target(kameorepowered)

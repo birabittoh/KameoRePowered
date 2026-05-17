@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import os
+import sys
+import platform
+import subprocess
+
+
+def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    root = os.path.normpath(os.path.join(script_dir, ".."))
+
+    is_windows = platform.system() == "Windows"
+    exe_name = "kameorepowered.exe" if is_windows else "kameorepowered"
+    exe_path = os.path.join(root, exe_name)
+
+    if not os.path.exists(exe_path):
+        print(f"error: '{exe_name}' not found — run scripts/build.py first", file=sys.stderr)
+        sys.exit(1)
+
+    env = os.environ.copy()
+
+    if platform.system() == "Linux":
+        existing = env.get("LD_LIBRARY_PATH", "")
+        env["LD_LIBRARY_PATH"] = root + (":" + existing if existing else "")
+        env.setdefault("__NV_PRIME_RENDER_OFFLOAD", "1")
+        env.setdefault("__VK_LAYER_NV_optimus", "NVIDIA_only")
+
+    assets_path = os.path.join(root, "assets")
+    cmd = [exe_path, "--game_data_root", assets_path] + sys.argv[1:]
+    sys.exit(subprocess.run(cmd, env=env).returncode)
+
+
+if __name__ == "__main__":
+    main()
