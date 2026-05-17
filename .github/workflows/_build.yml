@@ -33,18 +33,12 @@ jobs:
         include:
           - platform: windows
             runner: windows-latest
-            preset: win-amd64-release
-            sdk_platform: win-amd64
             sdk_dir: win-amd64
-            binary: out/build/win-amd64-release/kameorepowered.exe
             artifact_suffix: windows-x64
 
           - platform: linux
             runner: ubuntu-latest
-            preset: linux-amd64-release
-            sdk_platform: linux-amd64
             sdk_dir: linux-amd64
-            binary: out/build/linux-amd64-release/kameorepowered
             artifact_suffix: linux-x64
 
     steps:
@@ -92,27 +86,9 @@ jobs:
           echo "Fetched ${{ env.ASSET_PATH }} ($size bytes)"
           [ "$size" -ge 1048576 ] || { echo "Asset too small — fetch likely failed"; exit 1; }
 
-      - name: Configure
-        shell: bash
-        run: |
-          cmake --preset ${{ matrix.preset }} \
-            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/sdk/${{ matrix.sdk_dir }}" \
-            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-
-      - name: Codegen
-        run: cmake --build --preset ${{ matrix.preset }} --target kameorepowered_codegen
-
-      - name: Reconfigure (pick up generated/sources.cmake)
-        shell: bash
-        run: |
-          cmake --preset ${{ matrix.preset }} \
-            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/sdk/${{ matrix.sdk_dir }}" \
-            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-
       - name: Build
-        run: cmake --build --preset ${{ matrix.preset }} -j
+        shell: bash
+        run: python scripts/build.py --sdk-dir sdk/${{ matrix.sdk_dir }}
 
       - name: sccache stats
         if: always()
@@ -127,36 +103,14 @@ jobs:
           else
             out="kameorepowered-${{ inputs.tag }}-${{ matrix.artifact_suffix }}"
           fi
-
-          mkdir pkg
-          cp "${{ matrix.binary }}" pkg/
-
-          if [ "${{ matrix.platform }}" = "linux" ]; then
-            for so in sdk/${{ matrix.sdk_dir }}/lib/*.so; do
-              base=$(basename "$so")
-              case "$base" in *d.so|*rd.so) continue ;; esac
-              cp "$so" pkg/
-            done
-            tar -czf "${out}.tar.gz" -C pkg .
-            echo "ARTIFACT_PATH=${out}.tar.gz" >> "$GITHUB_ENV"
-          else
-            for dll in sdk/${{ matrix.sdk_dir }}/bin/*.dll; do
-              [ -f "$dll" ] || continue
-              base=$(basename "$dll")
-              case "$base" in *d.dll|*rd.dll) continue ;; esac
-              cp "$dll" pkg/
-            done
-            (cd pkg && zip -r "../${out}.zip" .)
-            echo "ARTIFACT_PATH=${out}.zip" >> "$GITHUB_ENV"
-          fi
-          echo "ARTIFACT_NAME=${out}" >> "$GITHUB_ENV"
+          python scripts/build.py --package "${out}"
 
       - name: Upload CI artifact
         if: inputs.publish_mode == 'artifact'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_PATH }}
+          path: pkg/
           if-no-files-found: error
 
       - name: Upload release artifact

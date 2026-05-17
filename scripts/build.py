@@ -59,36 +59,85 @@ def load_manifest(path):
         return tomllib.load(f)
 
 
-def copy_runtime_libs(is_windows):
+def copy_runtime_libs(is_windows, sdk_dir):
     if is_windows:
-        sdk_bin = os.path.join("sdk", "bin")
-        if not os.path.isdir(sdk_bin):
-            return
-        for name in os.listdir(sdk_bin):
-            if name.endswith(".dll") and not name.endswith("d.dll") and not name.endswith("rd.dll"):
-                src = os.path.join(sdk_bin, name)
-                print(f"+ cp {src} {name}")
-                shutil.copy2(src, name)
+        src_dir = os.path.join(sdk_dir, "bin")
+        suffix, bad = ".dll", ("d.dll", "rd.dll")
     else:
-        sdk_lib = os.path.join("sdk", "lib")
-        for name in os.listdir(sdk_lib):
-            if name.endswith(".so") and not name.endswith("d.so") and not name.endswith("rd.so"):
-                src = os.path.join(sdk_lib, name)
-                print(f"+ cp {src} {name}")
-                shutil.copy2(src, name)
+        src_dir = os.path.join(sdk_dir, "lib")
+        suffix, bad = ".so", ("d.so", "rd.so")
+
+    if not os.path.isdir(src_dir):
+        return
+    for name in os.listdir(src_dir):
+        if name.endswith(suffix) and not any(name.endswith(b) for b in bad):
+            src = os.path.join(src_dir, name)
+            print(f"+ cp {src} {name}")
+            shutil.copy2(src, name)
+
+
+def do_package(name, project_name, is_windows):
+    import zipfile
+    import tarfile
+
+    pkg_dir = "pkg"
+    os.makedirs(pkg_dir, exist_ok=True)
+
+    exe = f"{project_name}.exe" if is_windows else project_name
+    lib_suffix = ".dll" if is_windows else ".so"
+    candidates = [exe] + sorted(f for f in os.listdir(".") if f.endswith(lib_suffix))
+    for src in candidates:
+        if os.path.isfile(src):
+            print(f"+ cp {src} {pkg_dir}/")
+            shutil.copy2(src, pkg_dir)
+
+    if is_windows:
+        archive_path = f"{name}.zip"
+        print(f"+ zip {archive_path}")
+        with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for f in sorted(os.listdir(pkg_dir)):
+                zf.write(os.path.join(pkg_dir, f), f)
+    else:
+        archive_path = f"{name}.tar.gz"
+        print(f"+ tar {archive_path}")
+        with tarfile.open(archive_path, "w:gz") as tf:
+            for f in sorted(os.listdir(pkg_dir)):
+                tf.add(os.path.join(pkg_dir, f), arcname=f)
+
+    github_env = os.environ.get("GITHUB_ENV")
+    if github_env:
+        with open(github_env, "a") as fh:
+            fh.write(f"ARTIFACT_PATH={archive_path}\n")
+            fh.write(f"ARTIFACT_NAME={name}\n")
+
+
+def parse_args():
+    import argparse
+    p = argparse.ArgumentParser()
+    p.add_argument("--sdk-dir", default="sdk", help="Path to the ReXGlue SDK (default: sdk)")
+    p.add_argument("--package", metavar="NAME", help="Package built output into NAME.zip (Windows) or NAME.tar.gz (Linux); skips the build")
+    return p.parse_args()
 
 
 def main():
+    args = parse_args()
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     root = os.path.normpath(os.path.join(script_dir, ".."))
     os.chdir(root)
 
     is_windows = platform.system() == "Windows"
-    rexglue = os.path.join("sdk", "bin", "rexglue.exe" if is_windows else "rexglue")
 
     manifest_path = "kameorepowered_manifest.toml"
     manifest = load_manifest(manifest_path)
     project_name = manifest["project"]["name"]
+
+    if args.package:
+        do_package(args.package, project_name, is_windows)
+        return
+
+    sdk_dir = args.sdk_dir
+    rexglue = os.path.join(sdk_dir, "bin", "rexglue.exe" if is_windows else "rexglue")
     xex_path = manifest["entrypoint"]["file_path"]
 
     if not os.path.exists(xex_path):
@@ -103,19 +152,25 @@ def main():
 
     c_compiler, cxx_compiler = find_clang()
 
-    run([rexglue, "codegen", manifest_path])
-    run([
-        "cmake", "--preset", preset,
-        "-DCMAKE_PREFIX_PATH=sdk",
+    cmake_configure_args = [
+        f"-DCMAKE_PREFIX_PATH={sdk_dir}",
         f"-DCMAKE_C_COMPILER={c_compiler}",
         f"-DCMAKE_CXX_COMPILER={cxx_compiler}",
-    ])
+    ]
+    if shutil.which("sccache"):
+        cmake_configure_args += [
+            "-DCMAKE_C_COMPILER_LAUNCHER=sccache",
+            "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
+        ]
+
+    run([rexglue, "codegen", manifest_path])
+    run(["cmake", "--preset", preset] + cmake_configure_args)
     run(["cmake", "--build", "--preset", preset, "--parallel", str(os.cpu_count() or 1)])
 
     print(f"+ cp {build_output} {exe_name}")
     shutil.copy2(build_output, exe_name)
 
-    copy_runtime_libs(is_windows)
+    copy_runtime_libs(is_windows, sdk_dir)
 
 
 if __name__ == "__main__":
