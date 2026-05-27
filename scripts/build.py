@@ -35,15 +35,15 @@ def check_deps():
         sys.exit(1)
 
 
-def find_clang():
+def find_clangxx():
     # Versioned binaries (clang++-20, clang++-22, …) only exist on Linux.
     if platform.system() != "Windows":
         for version in range(30, 17, -1):
             if shutil.which(f"clang++-{version}"):
-                return f"clang-{version}", f"clang++-{version}"
+                return f"clang++-{version}"
     if shutil.which("clang++"):
-        return "clang", "clang++"
-    print("error: no clang/clang++ compiler found in PATH", file=sys.stderr)
+        return "clang++"
+    print("error: no clang++ compiler found in PATH", file=sys.stderr)
     sys.exit(1)
 
 
@@ -60,17 +60,13 @@ def load_manifest(path):
 
 
 def copy_runtime_libs(is_windows, sdk_dir):
-    if is_windows:
-        src_dir = os.path.join(sdk_dir, "bin")
-        suffix, bad = ".dll", ("d.dll", "rd.dll")
-    else:
-        src_dir = os.path.join(sdk_dir, "lib")
-        suffix, bad = ".so", ("d.so", "rd.so")
+    src_dir = os.path.join(sdk_dir, "bin" if is_windows else "lib")
+    suffix = ".dll" if is_windows else ".so"
 
     if not os.path.isdir(src_dir):
         return
     for name in os.listdir(src_dir):
-        if name.endswith(suffix) and not any(name.endswith(b) for b in bad):
+        if name.endswith(suffix):
             src = os.path.join(src_dir, name)
             print(f"+ cp {src} {name}")
             shutil.copy2(src, name)
@@ -150,16 +146,14 @@ def main():
     exe_name = f"{project_name}.exe" if is_windows else project_name
     build_output = os.path.join("out", "build", preset, exe_name)
 
-    c_compiler, cxx_compiler = find_clang()
+    cxx_compiler = find_clangxx()
 
     cmake_configure_args = [
         f"-DCMAKE_PREFIX_PATH={sdk_dir}",
-        f"-DCMAKE_C_COMPILER={c_compiler}",
         f"-DCMAKE_CXX_COMPILER={cxx_compiler}",
     ]
     if shutil.which("sccache"):
         cmake_configure_args += [
-            "-DCMAKE_C_COMPILER_LAUNCHER=sccache",
             "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
         ]
 
