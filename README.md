@@ -7,10 +7,11 @@ This project converts the Xbox 360 PowerPC `default.xex` into native x86_64
 code at build time, then wraps it with a small host runtime (logging,
 overlays, hooks) so the game runs natively and can be modded like a PC port.
 
-> **You must own the game.** This project does **not** ship any Kameo code,
-> data, or assets. You provide your own legally dumped `kameo.iso`.
+**You must own the game.** This project does **not** ship any Kameo code, data, or assets. You provide your own legally dumped `kameo.iso`.
 
 ## Using a pre-built release
+
+> Kameo: RePowered is available on [Goopie](https://goopie.xyz)!
 
 Get the latest stable build [here](https://github.com/birabittoh/KameoRePowered/releases/latest).
 
@@ -63,13 +64,7 @@ extract-xiso -d assets "Kameo - Elements of Power (USA).iso"
 sdk/bin/rexglue codegen kameorepowered_config.toml
 ```
 
-### 5. Run migrate (generates `generated/rexglue.cmake`)
-
-```bash
-sdk/bin/rexglue migrate --app_root .
-```
-
-### 6. Build
+### 5. Build
 
 ```bash
 # Linux
