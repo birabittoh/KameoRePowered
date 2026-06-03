@@ -15,7 +15,9 @@ include(generated/rexglue.cmake)
 # Sources
 set(KAMEOREPOWERED_SOURCES
     src/main.cpp
-    src/kameorepowered_hooks.cpp
+    src/kameorepowered_hooks_combat.cpp
+    src/kameorepowered_hooks_audio.cpp
+    src/kameorepowered_hooks_dlc.cpp
     ${GENERATED_SOURCES}
 )
 
