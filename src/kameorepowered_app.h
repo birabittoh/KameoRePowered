@@ -9,9 +9,6 @@
 #include <memory>
 #include <string>
 
-#include <rex/cvar.h>
-#include <rex/input/input_system.h>
-#include <rex/input/mnk/mnk_input_driver.h>
 #include <rex/platform/fpscr.h>
 #include <rex/rex_app.h>
 #include <rex/system/flags.h>
@@ -19,26 +16,6 @@
 #include "kameorepowered_dialogs.h"
 #include "kameorepowered_dlc_models.h"
 #include "kameorepowered_fp_guard.h"
-
-REXCVAR_DECLARE(std::string, keybind_a);
-REXCVAR_DECLARE(std::string, keybind_b);
-REXCVAR_DECLARE(std::string, keybind_x);
-REXCVAR_DECLARE(std::string, keybind_y);
-REXCVAR_DECLARE(std::string, keybind_left_shoulder);
-REXCVAR_DECLARE(std::string, keybind_right_shoulder);
-REXCVAR_DECLARE(std::string, keybind_left_trigger);
-REXCVAR_DECLARE(std::string, keybind_right_trigger);
-REXCVAR_DECLARE(std::string, keybind_back);
-REXCVAR_DECLARE(std::string, keybind_start);
-REXCVAR_DECLARE(std::string, keybind_dpad_up);
-REXCVAR_DECLARE(std::string, keybind_dpad_down);
-REXCVAR_DECLARE(std::string, keybind_dpad_left);
-REXCVAR_DECLARE(std::string, keybind_dpad_right);
-REXCVAR_DECLARE(std::string, keybind_lstick_up);
-REXCVAR_DECLARE(std::string, keybind_lstick_down);
-REXCVAR_DECLARE(std::string, keybind_lstick_left);
-REXCVAR_DECLARE(std::string, keybind_lstick_right);
-REXCVAR_DECLARE(bool, mnk_mode);
 
 class KameorepoweredApp : public rex::ReXApp {
  public:
@@ -51,36 +28,6 @@ class KameorepoweredApp : public rex::ReXApp {
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
-    REXCVAR_SET(mnk_mode,              true);
-    REXCVAR_SET(keybind_lstick_up,     "W");
-    REXCVAR_SET(keybind_lstick_left,   "A");
-    REXCVAR_SET(keybind_lstick_down,   "S");
-    REXCVAR_SET(keybind_lstick_right,  "D");
-    REXCVAR_SET(keybind_x,             "1");
-    REXCVAR_SET(keybind_y,             "2");
-    REXCVAR_SET(keybind_b,             "3");
-    REXCVAR_SET(keybind_a,             "Space");
-    REXCVAR_SET(keybind_left_trigger,  "LMB");
-    REXCVAR_SET(keybind_right_trigger, "RMB");
-    REXCVAR_SET(keybind_start,         "Return");
-    REXCVAR_SET(keybind_back,          "Back");
-    REXCVAR_SET(keybind_dpad_up,       "Up");
-    REXCVAR_SET(keybind_dpad_down,     "Down");
-    REXCVAR_SET(keybind_dpad_left,     "Left");
-    REXCVAR_SET(keybind_dpad_right,    "Right");
-    REXCVAR_SET(keybind_left_shoulder, "Q");
-    REXCVAR_SET(keybind_right_shoulder,"E");
-
-    config.input_factory =
-        [](bool tool_mode) -> std::unique_ptr<rex::system::IInputSystem> {
-          auto sys = rex::input::CreateDefaultInputSystem(tool_mode);
-          if (!tool_mode && sys) {
-            sys->AddDriver(std::make_unique<rex::input::mnk::MnkInputDriver>(
-                nullptr, 1));
-          }
-          return sys;
-        };
-
     SyncKameoDlcListForCustomModels();
 #ifdef _WIN32
     veh_handle_ = InstallGuestFpExceptionHandlerWin();
