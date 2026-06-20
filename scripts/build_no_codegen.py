@@ -168,6 +168,9 @@ def main():
     cmake_configure_args = [
         f"-DCMAKE_PREFIX_PATH={sdk_dir}",
         f"-DCMAKE_CXX_COMPILER={cxx_compiler}",
+        # Always set explicitly so switching between TU and vanilla builds doesn't
+        # inherit a stale value from the CMake cache.
+        f"-DKAMEO_TU={'ON' if args.tu else 'OFF'}",
     ]
     if shutil.which("sccache"):
         cmake_configure_args += [

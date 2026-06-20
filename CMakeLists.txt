@@ -32,3 +32,13 @@ else()
 endif()
 
 rexglue_setup_target(kameorepowered)
+
+# Title-update builds: the hand-written hooks call game functions by hardcoded
+# vanilla addresses that the update relocates. Until those are re-derived for the
+# patched image, -DKAMEO_TU=ON compiles the affected calls out (the custom hooks
+# are also stripped from the TU codegen config). The regular build leaves it OFF
+# and keeps all features. Set automatically by scripts/build.py --tu.
+option(KAMEO_TU "Build for a baked-in title update (disables vanilla-address hooks)" OFF)
+if(KAMEO_TU)
+    target_compile_definitions(kameorepowered PRIVATE KAMEO_TU=1)
+endif()

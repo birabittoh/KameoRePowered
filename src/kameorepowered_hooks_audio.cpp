@@ -85,13 +85,13 @@ void KameoReloadLanguageStringTable(PPCContext& ctx, uint8_t* base) {
   if (str_handle != 0 && str_handle != 0xFFFFFFFF) {
     PPCContext unload_ctx = ctx;
     unload_ctx.r3.u64 = str_handle;
-    __imp__sub_8251E538(unload_ctx, base);
+    KAMEO_CALL_GUEST(__imp__sub_8251E538, unload_ctx, base);
     REX_STORE_U32(0x827556B8, 0xFFFFFFFF);
   }
 
   // Reload string table — filename is hardcoded inside sub_820BF6E8.
   PPCContext reload_ctx = ctx;
-  __imp__sub_820BF6E8(reload_ctx, base);
+  KAMEO_CALL_GUEST(__imp__sub_820BF6E8, reload_ctx, base);
   REX_STORE_U32(0x827556B8, reload_ctx.r3.u32);
 
   // Reload speech wave banks from the new language directory.
@@ -139,7 +139,7 @@ void KameoReplayCachedVolumes(PPCContext& ctx, uint8_t* base) {
     PPCContext call_ctx = ctx;
     call_ctx.r3.u64 = cat_ptr;
     call_ctx.f1.f64 = orig_f1;
-    __imp__sub_8230C050(call_ctx, base);
+    KAMEO_CALL_GUEST(__imp__sub_8230C050, call_ctx, base);
   }
 }
 
@@ -245,7 +245,7 @@ void KameoSetBinkLanguageTrackVolume(PPCRegister& r27, PPCRegister& r29) {
   ctx.r3.u64 = bink_handle;
   ctx.r4.u64 = lang_track;
   ctx.r5.u64 = vol;
-  __imp__sub_826D21B0(ctx, base);
+  KAMEO_CALL_GUEST(__imp__sub_826D21B0, ctx, base);
 }
 
 void KameoOverrideAudioLanguage(PPCRegister& r3) {

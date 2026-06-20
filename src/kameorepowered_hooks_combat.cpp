@@ -41,7 +41,7 @@ bool IsPlayerHealthRecord(uint8_t* base, uint32_t health_record) {
 
   PPCContext call_ctx = *ctx_ptr;
   call_ctx.r3.u64 = owner;
-  __imp__sub_82252588(call_ctx, base);
+  KAMEO_CALL_GUEST(__imp__sub_82252588, call_ctx, base);
   return call_ctx.r3.u32 != 0;
 }
 
@@ -49,7 +49,7 @@ bool IsPlayerHealthRecord(uint8_t* base, uint32_t health_record) {
 bool CallUnlockCheck(uint32_t id, PPCContext& source_ctx, uint8_t* base) {
   PPCContext call_ctx = source_ctx;
   call_ctx.r3.u64 = id;
-  __imp__sub_822CC3C0(call_ctx, base);
+  KAMEO_CALL_GUEST(__imp__sub_822CC3C0, call_ctx, base);
   return call_ctx.r3.u32 != 0;
 }
 
@@ -89,7 +89,7 @@ int32_t OriginalEnergyCurrent(PPCContext& source_ctx, uint8_t* base) {
 
   PPCContext call_ctx = source_ctx;
   call_ctx.r3.u64 = energy_record;
-  __imp__sub_8217CEC0(call_ctx, base);
+  KAMEO_CALL_GUEST(__imp__sub_8217CEC0, call_ctx, base);
   if (call_ctx.r3.u32 == 0) {
     return 0;
   }

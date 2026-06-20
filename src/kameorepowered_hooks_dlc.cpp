@@ -70,7 +70,7 @@ void ProcessPendingDlcSwap(PPCContext& ctx, uint8_t* base) {
   const uint32_t guest_str = call_ctx.r1.u32 - 64;
   WriteGuestStringAt(base, guest_str, suffix);
   call_ctx.r4.u64 = guest_str;
-  __imp__sub_822502A0(call_ctx, base);
+  KAMEO_CALL_GUEST(__imp__sub_822502A0, call_ctx, base);
 }
 
 }  // namespace

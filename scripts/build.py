@@ -185,12 +185,24 @@ def derive_tu_manifest(manifest_path, base_config, overrides_path):
     remove = {int(a) for a in overrides.get("remove_functions", [])}
     additions = overrides.get("functions", {})
 
+    # The midasm hooks call the project's Kameo* functions at vanilla addresses
+    # that the update shifts; several change control flow (return/jump), so they
+    # are unsafe to inject into the patched image. Strip them — the matching host
+    # hooks are compiled out via -DKAMEO_TU.
+    strip_midasm = overrides.get("strip_midasm_hooks", True)
+
     import re
-    out_lines, dropped, in_functions, inserted = [], set(), False, False
+    out_lines, dropped = [], set()
+    in_functions, inserted, in_midasm = False, False, False
     for line in open(base_config).read().splitlines():
         stripped = line.strip()
         if stripped.startswith("[") and stripped.endswith("]"):
             in_functions = stripped == "[functions]"
+            in_midasm = strip_midasm and stripped == "[[midasm_hook]]"
+            if in_midasm:
+                continue  # drop the table header; its body is skipped below
+        if in_midasm:
+            continue
         m = re.match(r"(0x[0-9A-Fa-f]+)\s*=", stripped)
         if m and int(m.group(1), 16) in remove:
             dropped.add(int(m.group(1), 16))
@@ -268,6 +280,9 @@ def main():
     cmake_configure_args = [
         f"-DCMAKE_PREFIX_PATH={sdk_dir}",
         f"-DCMAKE_CXX_COMPILER={cxx_compiler}",
+        # Always set explicitly so switching between TU and vanilla builds doesn't
+        # inherit a stale value from the CMake cache.
+        f"-DKAMEO_TU={'ON' if args.tu else 'OFF'}",
     ]
     if shutil.which("sccache"):
         cmake_configure_args += [

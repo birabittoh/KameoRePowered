@@ -20,6 +20,21 @@ extern "C" REX_FUNC(__imp__sub_8251E538);  // UnloadStringTable
 extern "C" REX_FUNC(__imp__sub_820BF6E8);  // ReloadStringTable
 extern "C" REX_FUNC(__imp__sub_826D21B0);  // SetBinkLanguageTrackVolume
 
+// Calls an original guest function from a hook.
+//
+// In a title-update build (-DKAMEO_TU) the functions these hooks call were
+// relocated by the update and are absent from the patched image. The custom
+// hooks are also stripped from the TU codegen config, so these call sites are
+// never reached at runtime in a TU build — they are compiled out here only so
+// the project links. The argument expression is still evaluated so locals stay
+// "used". TODO: re-derive the patched-image addresses and drop this shim to
+// restore the cheat/DLC/audio features on title-update builds.
+#ifdef KAMEO_TU
+#define KAMEO_CALL_GUEST(fn, ...) ((void)(__VA_ARGS__))
+#else
+#define KAMEO_CALL_GUEST(fn, ...) fn(__VA_ARGS__)
+#endif
+
 // ---------------------------------------------------------------------------
 // Guest-memory helpers
 // ---------------------------------------------------------------------------
