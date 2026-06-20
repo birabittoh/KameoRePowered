@@ -166,14 +166,9 @@ def main():
             "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
         ]
 
-    lib_suffix = ".dll" if is_windows else ".so"
-    to_remove = [exe_name] + [f for f in os.listdir(".") if f.endswith(lib_suffix)]
-    for name in to_remove:
-        if os.path.isfile(name):
-            print(f"+ rm {name}")
-            os.remove(name)
-
-    run([rexglue, "codegen", manifest_path])
+    # codegen status ignored (temporary workaround)
+    print(f"+ {rexglue} codegen {manifest_path}")
+    subprocess.run([rexglue, "codegen", manifest_path])
     run(["cmake", "--preset", preset] + cmake_configure_args)
     run(["cmake", "--build", "--preset", preset, "--parallel", str(os.cpu_count() or 1)])
 

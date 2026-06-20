@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 import os
 import sys
+import glob
 import platform
 import subprocess
+import tomllib
+
+
+def load_manifest(path):
+    with open(path, "rb") as f:
+        return tomllib.load(f)
 
 
 def main():
@@ -10,7 +17,19 @@ def main():
     root = os.path.normpath(os.path.join(script_dir, ".."))
 
     is_windows = platform.system() == "Windows"
-    exe_name = "kameorepowered.exe" if is_windows else "kameorepowered"
+
+    manifests = glob.glob(os.path.join(root, "*_manifest.toml"))
+    if len(manifests) != 1:
+        print(
+            f"error: expected exactly one *_manifest.toml in the repo root, "
+            f"found: {manifests if manifests else 'none'}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    manifest = load_manifest(manifests[0])
+    project_name = manifest["project"]["name"]
+
+    exe_name = f"{project_name}.exe" if is_windows else project_name
     exe_path = os.path.join(root, exe_name)
 
     if not os.path.exists(exe_path):
