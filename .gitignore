@@ -39,6 +39,7 @@ kameorepowered.toml
 # supplies their own — see scripts/extract_tu.py)
 /TU_*
 /tu_extracted/
+/update/
 *.xexp
 
 # Python caches

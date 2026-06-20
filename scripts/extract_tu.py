@@ -135,9 +135,11 @@ class Stfs:
                 name = e[:name_len].decode("latin-1")
                 allocated = u24_le(e[0x2C:0x2F])
                 start_block = u24_le(e[0x2F:0x32])
+                (parent,) = struct.unpack_from(">H", e, 0x32)
                 (length,) = struct.unpack_from(">I", e, 0x34)
                 entries.append(dict(name=name, is_dir=bool(is_dir), length=length,
-                                    start_block=start_block, allocated=allocated))
+                                    start_block=start_block, allocated=allocated,
+                                    parent=parent))
             table_block = self._level0_next_block(table_block)
             if table_block == END_OF_CHAIN:
                 break
@@ -182,6 +184,37 @@ def extract_xexp(package_path):
     if data[:4] != b"XEX2":
         raise RuntimeError(f"largest file in {package_path} is not an XEX (magic={data[:4]!r})")
     return data
+
+
+def extract_update_tree(package_path, out_dir):
+    """Extract the TU's data files (the per-language .str string tables),
+    preserving their directory layout, into out_dir. This is the content the
+    game expects mounted as the update: device. Returns the number of files.
+
+    The XEX delta patch itself is skipped — it is handled by extract_xexp().
+    """
+    with open(package_path, "rb") as f:
+        stfs = Stfs(f.read())
+    entries = stfs.list_files()
+
+    def full_path(i):
+        parts, p = [entries[i]["name"]], entries[i]["parent"]
+        while p != 0xFFFF:
+            parts.append(entries[p]["name"])
+            p = entries[p]["parent"]
+        return parts[::-1]
+
+    count = 0
+    for i, e in enumerate(entries):
+        if e["is_dir"] or e["name"].endswith(".xexp"):
+            continue
+        rel = full_path(i)
+        dest = os.path.join(out_dir, *rel)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        with open(dest, "wb") as f:
+            f.write(stfs.read_file(e))
+        count += 1
+    return count
 
 
 def xexp_digest_source(xexp):
@@ -235,6 +268,9 @@ def main():
     p.add_argument("-o", "--output", metavar="PATH",
                    help="output path for the selected .xexp (default: <package>.xexp, "
                         "or assets/default.xexp when --base is given)")
+    p.add_argument("--update-dir", metavar="DIR", default="update",
+                   help="with --base, also extract the TU data files (per-language .str "
+                        "tables) here, to be mounted as the update: device (default: update)")
     args = p.parse_args()
 
     missing = [pkg for pkg in args.packages if not os.path.isfile(pkg)]
@@ -258,6 +294,8 @@ def main():
         with open(out, "wb") as f:
             f.write(xexp)
         print(f"matched {os.path.basename(pkg)} -> v{ver} ({len(xexp)} bytes) -> {out}")
+        n = extract_update_tree(pkg, args.update_dir)
+        print(f"extracted {n} update data file(s) -> {args.update_dir}/ (mount as update:)")
         return
 
     for pkg in args.packages:

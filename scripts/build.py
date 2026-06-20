@@ -155,6 +155,10 @@ def stage_title_update(tu_args, xex_path):
     with open(staged, "wb") as f:
         f.write(xexp)
     print(f"+ title update: {os.path.basename(pkg)} -> v{version}, staged {staged}")
+    # Extract the TU's data files (per-language .str string tables) for the
+    # update: mount; run.py points --update_data_root at this directory.
+    n = extract_tu.extract_update_tree(pkg, "update")
+    print(f"+ title update: extracted {n} data file(s) -> update/ (mounted as update:)")
     return staged, version
 
 
