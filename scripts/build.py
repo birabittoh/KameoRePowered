@@ -113,7 +113,115 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sdk-dir", default="sdk", help="Path to the ReXGlue SDK (default: sdk)")
     p.add_argument("--package", metavar="NAME", help="Package built output into NAME.zip (Windows) or NAME.tar.gz (Linux); skips the build")
+    p.add_argument(
+        "--tu",
+        nargs="+",
+        metavar="PACKAGE",
+        help="Build with a title update. Pass the TU package(s) (LIVE/CON/PIRS) or a "
+        "directory containing them; the variant matching your base XEX is selected by "
+        "digest, staged as a sibling .xexp, and baked in by codegen.",
+    )
     return p.parse_args()
+
+
+def stage_title_update(tu_args, xex_path):
+    """Select the TU variant matching xex_path and stage it as the sibling '<xex>p'.
+
+    Returns (staged_path, version_label). Exits on no match.
+    """
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import extract_tu
+
+    packages = []
+    for arg in tu_args:
+        if os.path.isdir(arg):
+            packages += sorted(glob.glob(os.path.join(arg, "TU_*")))
+        else:
+            packages.append(arg)
+    if not packages:
+        print(f"error: no TU packages found in {tu_args}", file=sys.stderr)
+        sys.exit(1)
+
+    pkg, xexp, version = extract_tu.select_matching(packages, xex_path)
+    if not pkg:
+        print(
+            f"error: none of the given TU packages match the base XEX "
+            f"({extract_tu.base_signature(xex_path)}). They are for other game revisions.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    staged = xex_path + "p"  # the loader applies the sibling '<name>p'
+    with open(staged, "wb") as f:
+        f.write(xexp)
+    print(f"+ title update: {os.path.basename(pkg)} -> v{version}, staged {staged}")
+    return staged, version
+
+
+def _format_function_entry(value):
+    if not value:
+        return "{}"
+    parts = []
+    for k, v in value.items():
+        if isinstance(v, bool):
+            parts.append(f"{k} = {str(v).lower()}")
+        elif isinstance(v, int):
+            parts.append(f"{k} = 0x{v:X}" if k in ("end", "parent", "size") else f"{k} = {v}")
+        else:
+            parts.append(f'{k} = "{v}"')
+    return "{ " + ", ".join(parts) + " }"
+
+
+def derive_tu_manifest(manifest_path, base_config, overrides_path):
+    """Write a TU-only codegen config + manifest derived from the vanilla ones.
+
+    The base config is tuned for the unpatched image. We drop the hints listed in
+    `remove_functions` (stale once the image is patched) and merge the override
+    [functions], then point a throwaway manifest at the derived config. The
+    vanilla manifest/config are left untouched. Returns the temp manifest path.
+    """
+    with open(overrides_path, "rb") as f:
+        overrides = tomllib.load(f)
+    remove = {int(a) for a in overrides.get("remove_functions", [])}
+    additions = overrides.get("functions", {})
+
+    import re
+    out_lines, dropped, in_functions, inserted = [], set(), False, False
+    for line in open(base_config).read().splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_functions = stripped == "[functions]"
+        m = re.match(r"(0x[0-9A-Fa-f]+)\s*=", stripped)
+        if m and int(m.group(1), 16) in remove:
+            dropped.add(int(m.group(1), 16))
+            out_lines.append(f"# [tu] removed (stale for patched image): {stripped}")
+            continue
+        out_lines.append(line)
+        if in_functions and not inserted:
+            out_lines.append("# [tu] additions for the patched image:")
+            for addr, val in additions.items():
+                out_lines.append(f"{addr} = {_format_function_entry(val)}")
+            inserted = True
+
+    missing = remove - dropped
+    if missing:
+        print(
+            "warning: tu overrides list functions not found in base config: "
+            + ", ".join(f"0x{a:X}" for a in sorted(missing)),
+            file=sys.stderr,
+        )
+
+    derived_config = ".tu_config.toml"
+    with open(derived_config, "w") as f:
+        f.write("\n".join(out_lines) + "\n")
+
+    manifest_text = open(manifest_path).read().replace(
+        f'"{os.path.basename(base_config)}"', f'"{derived_config}"'
+    )
+    tu_manifest = ".tu_build.toml"  # deliberately not '*_manifest.toml'
+    with open(tu_manifest, "w") as f:
+        f.write(manifest_text)
+    return tu_manifest, derived_config
 
 
 def main():
@@ -173,7 +281,27 @@ def main():
             print(f"+ rm {name}")
             os.remove(name)
 
-    run([rexglue, "codegen", manifest_path])
+    tu_version = None
+    sibling_patch = xex_path + "p"
+    codegen_manifest = manifest_path
+    if args.tu:
+        _, tu_version = stage_title_update(args.tu, xex_path)
+        # Use TU-specific codegen hints (kameorepowered_tu_overrides.toml) so the
+        # patched image analyzes cleanly without touching the vanilla config.
+        overrides = "kameorepowered_tu_overrides.toml"
+        base_config = manifest["entrypoint"]["includes"][0]
+        if os.path.exists(overrides):
+            codegen_manifest, _ = derive_tu_manifest(manifest_path, base_config, overrides)
+        else:
+            print(f"warning: {overrides} not found; using vanilla codegen hints", file=sys.stderr)
+    elif os.path.exists(sibling_patch):
+        print(
+            f"warning: '{sibling_patch}' is present and will be baked into this build by "
+            f"codegen. Remove it or pass --tu for an explicit title-update build.",
+            file=sys.stderr,
+        )
+
+    run([rexglue, "codegen", codegen_manifest])
     run(["cmake", "--preset", preset] + cmake_configure_args)
     run(["cmake", "--build", "--preset", preset, "--parallel", str(os.cpu_count() or 1)])
 
@@ -181,6 +309,14 @@ def main():
     shutil.copy2(build_output, exe_name)
 
     copy_runtime_libs(is_windows, sdk_dir)
+
+    if tu_version:
+        print(
+            f"\nBuilt with title update v{tu_version}. The matching patch is staged at "
+            f"'{sibling_patch}'\nand is required at runtime — the loader re-applies it to the "
+            f"base image on launch.\nPlayers supply their own dump + TU; "
+            f"scripts/extract_tu.py --base <default.xex> selects the right one."
+        )
 
 
 if __name__ == "__main__":

@@ -113,6 +113,14 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sdk-dir", default="sdk", help="Path to the ReXGlue SDK (default: sdk)")
     p.add_argument("--package", metavar="NAME", help="Package built output into NAME.zip (Windows) or NAME.tar.gz (Linux); skips the build")
+    p.add_argument(
+        "--tu",
+        nargs="+",
+        metavar="PACKAGE",
+        help="Build with a title update. Pass the TU package(s) (LIVE/CON/PIRS) or a "
+        "directory containing them; the variant matching your base XEX is selected by "
+        "digest, staged as a sibling .xexp, and baked in by codegen.",
+    )
     return p.parse_args()
 
 
@@ -166,9 +174,29 @@ def main():
             "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache",
         ]
 
+    tu_version = None
+    sibling_patch = xex_path + "p"
+    codegen_manifest = manifest_path
+    if args.tu:
+        sys.path.insert(0, script_dir)
+        import build
+        _, tu_version = build.stage_title_update(args.tu, xex_path)
+        overrides = "kameorepowered_tu_overrides.toml"
+        base_config = manifest["entrypoint"]["includes"][0]
+        if os.path.exists(overrides):
+            codegen_manifest, _ = build.derive_tu_manifest(manifest_path, base_config, overrides)
+        else:
+            print(f"warning: {overrides} not found; using vanilla codegen hints", file=sys.stderr)
+    elif os.path.exists(sibling_patch):
+        print(
+            f"warning: '{sibling_patch}' is present and will be baked into this build by "
+            f"codegen. Remove it or pass --tu for an explicit title-update build.",
+            file=sys.stderr,
+        )
+
     # codegen status ignored (temporary workaround)
-    print(f"+ {rexglue} codegen {manifest_path}")
-    subprocess.run([rexglue, "codegen", manifest_path])
+    print(f"+ {rexglue} codegen {codegen_manifest}")
+    subprocess.run([rexglue, "codegen", codegen_manifest])
     run(["cmake", "--preset", preset] + cmake_configure_args)
     run(["cmake", "--build", "--preset", preset, "--parallel", str(os.cpu_count() or 1)])
 
@@ -176,6 +204,14 @@ def main():
     shutil.copy2(build_output, exe_name)
 
     copy_runtime_libs(is_windows, sdk_dir)
+
+    if tu_version:
+        print(
+            f"\nBuilt with title update v{tu_version}. The matching patch is staged at "
+            f"'{sibling_patch}'\nand is required at runtime — the loader re-applies it to the "
+            f"base image on launch.\nPlayers supply their own dump + TU; "
+            f"scripts/extract_tu.py --base <default.xex> selects the right one."
+        )
 
 
 if __name__ == "__main__":

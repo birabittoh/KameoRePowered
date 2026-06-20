@@ -1,0 +1,20 @@
+# Codegen hint deltas for title-update (--tu) builds.
+#
+# kameorepowered_config.toml is tuned for the UNPATCHED image. The title update
+# rewrites code in a few regions, which (a) invalidates some vanilla function
+# hints that now land mid-function in the patched image, and (b) introduces a new
+# branch target the analyzer can't discover on its own. The build scripts derive
+# the effective TU config by removing `remove_functions` from the base config and
+# merging the [functions] additions below — so the vanilla build is untouched.
+#
+# Tuned for the update variant matching this project's default.xex (v0.0.2.1). A
+# different regional base dump selects a different TU build and may need its own
+# deltas.
+
+# Vanilla hints that fall mid-function in the patched image; forcing a function
+# there fractures analysis and orphans the region's internal branches.
+remove_functions = [0x820CD188, 0x82310CE0, 0x82325B40]
+
+# Function entries the patched image needs but the analyzer doesn't find.
+[functions]
+0x82324118 = {}  # backward branch target from 0x82324294
