@@ -22,6 +22,10 @@ strip_midasm_hooks = true
 # there fractures analysis and orphans the region's internal branches.
 remove_functions = [0x820CD188, 0x82310CE0, 0x82325B40]
 
-# Function entries the patched image needs but the analyzer doesn't find.
+# Function entries the patched image needs but the analyzer doesn't find. The
+# update reshapes code so some functions are only reached indirectly and aren't
+# auto-discovered; each surfaces at runtime as "No function registered at <addr>"
+# (XThread::Execute) and is fixed by registering it here.
 [functions]
 0x82324118 = {}  # backward branch target from 0x82324294
+0x8251F320 = {}  # indirect-call target (present in vanilla; missed in patched image)
