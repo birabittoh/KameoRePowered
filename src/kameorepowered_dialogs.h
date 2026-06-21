@@ -151,52 +151,60 @@ class KameoModelDialog : public rex::ui::ImGuiDialog {
         static_cast<unsigned long long>(fp_last_rip));
     }
 
-    const auto dlc_path = KameoActiveDlcPath();
-    if (dlc_path.empty() || !std::filesystem::exists(dlc_path)) {
+#ifdef KAMEO_TU
+    ImGui::TextDisabled("DLC/model swap unavailable (TU build)");
+#else
+    const auto dlc_root = KameoActiveDlcPath();
+    if (dlc_root.empty() || !std::filesystem::exists(dlc_root)) {
       ImGui::TextUnformatted("DLC folder missing");
     } else {
       int index = 0;
       std::set<std::string> shown_suffixes;
-      for (const auto& entry : std::filesystem::directory_iterator(dlc_path)) {
-        if (!entry.is_regular_file()) {
+      for (const auto& pkg_entry : std::filesystem::directory_iterator(dlc_root)) {
+        if (!pkg_entry.is_directory()) {
           continue;
         }
+        for (const auto& entry : std::filesystem::directory_iterator(pkg_entry.path())) {
+          if (!entry.is_regular_file()) {
+            continue;
+          }
 
-        const auto filename = entry.path().filename().string();
-        if (!IsKameoDlcModelName(filename)) {
-          continue;
-        }
+          const auto filename = entry.path().filename().string();
+          if (!IsKameoDlcModelName(filename)) {
+            continue;
+          }
 
-        const auto suffix = KameoDlcModelSuffix(filename);
-        if (suffix == "00" || suffix == "01" || suffix == "02" ||
-            suffix == "std" || suffix == "prototype" ||
-            suffix == "missing01" || suffix == "missing02" ||
-            suffix == "alt01" || suffix == "alt02") {
-          continue;
-        }
+          const auto suffix = KameoDlcModelSuffix(filename);
+          if (suffix == "00" || suffix == "01" || suffix == "02" ||
+              suffix == "std" || suffix == "prototype" ||
+              suffix == "missing01" || suffix == "missing02" ||
+              suffix == "alt01" || suffix == "alt02") {
+            continue;
+          }
 
-        if (!shown_suffixes.insert(suffix).second) {
-          continue;
-        }
+          if (!shown_suffixes.insert(suffix).second) {
+            continue;
+          }
 
-        if (!enabled) {
-          ImGui::BeginDisabled();
-        }
+          if (!enabled) {
+            ImGui::BeginDisabled();
+          }
 
-        if (ImGui::Button(suffix.c_str(), ImVec2(86.0f, 0.0f))) {
-          g_kameo_stop_next_dlc_model_load.store(0, std::memory_order_release);
-          QueueKameoDlcSuffix(suffix, IsNativeKameoDlcSuffix(suffix));
-          last_result_ = "Queued DLC Kameo ";
-          last_result_ += suffix;
-        }
+          if (ImGui::Button(suffix.c_str(), ImVec2(86.0f, 0.0f))) {
+            g_kameo_stop_next_dlc_model_load.store(0, std::memory_order_release);
+            QueueKameoDlcSuffix(suffix, IsNativeKameoDlcSuffix(suffix));
+            last_result_ = "Queued DLC Kameo ";
+            last_result_ += suffix;
+          }
 
-        if (!enabled) {
-          ImGui::EndDisabled();
-        }
+          if (!enabled) {
+            ImGui::EndDisabled();
+          }
 
-        ++index;
-        if ((index % 4) != 0) {
-          ImGui::SameLine();
+          ++index;
+          if ((index % 4) != 0) {
+            ImGui::SameLine();
+          }
         }
       }
 
@@ -222,6 +230,7 @@ class KameoModelDialog : public rex::ui::ImGuiDialog {
         ImGui::EndDisabled();
       }
     }
+#endif
 
     if (!last_result_.empty()) {
       ImGui::Separator();

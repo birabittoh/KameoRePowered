@@ -42,8 +42,8 @@ inline bool IsNativeKameoDlcSuffix(const std::string& suffix) {
          suffix[1] >= '0' && suffix[1] <= '9';
 }
 
-// Returns the path to the active Kameo DLC save folder, or an empty path if
-// the user profile / HOME environment variable is unavailable.
+// Returns the path to the Kameo DLC content directory (contains one
+// subdirectory per DLC package), or an empty path if unavailable.
 inline std::filesystem::path KameoActiveDlcPath() {
 #ifdef _WIN32
   char* user_profile = nullptr;
@@ -57,81 +57,93 @@ inline std::filesystem::path KameoActiveDlcPath() {
   }
   std::filesystem::path base(user_profile);
   std::free(user_profile);
+  base = base / "Documents" / "kameorepowered";
 #else
-  const char* home = std::getenv("HOME");
-  if (!home || !home[0]) {
-    return {};
+  const char* xdg_data = std::getenv("XDG_DATA_HOME");
+  std::filesystem::path base;
+  if (xdg_data && xdg_data[0]) {
+    base = std::filesystem::path(xdg_data) / "kameorepowered";
+  } else {
+    const char* home = std::getenv("HOME");
+    if (!home || !home[0]) {
+      return {};
+    }
+    base = std::filesystem::path(home) / ".local" / "share" / "kameorepowered";
   }
-  std::filesystem::path base(home);
 #endif
-  return base / "Documents" / "kameo" /
-      "0000000000000000" / "4D5307D2" / "00000002" /
-      "3315297F7EFF0B5B4589A164C1EA9AE17FC81EC04D";
+  return base / "0000000000000000" / "4D5307D2" / "00000002";
 }
 
-// Scans the DLC folder for custom model files not yet listed in KameoDLCList.txt
-// and appends any missing entries. No-ops if the folder or list don't exist.
+// Scans all DLC package subdirectories for custom model files not yet listed
+// in their KameoDLCList.txt and appends any missing entries.
 inline void SyncKameoDlcListForCustomModels() {
-  const auto dlc_path = KameoActiveDlcPath();
-  if (dlc_path.empty() || !std::filesystem::exists(dlc_path)) {
+  const auto dlc_root = KameoActiveDlcPath();
+  if (dlc_root.empty() || !std::filesystem::exists(dlc_root)) {
     return;
   }
 
-  const auto list_path = dlc_path / "KameoDLCList.txt";
-  if (!std::filesystem::exists(list_path)) {
-    return;
-  }
-
-  std::ifstream in(list_path);
-  if (!in) {
-    return;
-  }
-
-  std::set<std::string> listed;
-  std::string line;
-  bool list_ended_with_newline = true;
-  while (std::getline(in, line)) {
-    if (!line.empty() && line.back() == '\r') {
-      line.pop_back();
+  for (const auto& pkg_entry : std::filesystem::directory_iterator(dlc_root)) {
+    if (!pkg_entry.is_directory()) {
+      continue;
     }
-    if (!line.empty()) {
-      listed.insert(line);
-    }
-    list_ended_with_newline = false;
-  }
-  if (in.eof()) {
-    in.clear();
-    in.seekg(0, std::ios::end);
-    const auto size = in.tellg();
-    if (size > 0) {
-      in.seekg(-1, std::ios::end);
-      char last = '\0';
-      in.get(last);
-      list_ended_with_newline = last == '\n';
-    }
-  }
+    const auto& pkg_dir = pkg_entry.path();
 
-  std::ofstream out(list_path, std::ios::app);
-  if (!out) {
-    return;
-  }
-
-  bool wrote_any = false;
-  for (const auto& entry : std::filesystem::directory_iterator(dlc_path)) {
-    if (!entry.is_regular_file()) {
+    const auto list_path = pkg_dir / "KameoDLCList.txt";
+    if (!std::filesystem::exists(list_path)) {
       continue;
     }
 
-    const std::string filename = entry.path().filename().string();
-    if (!IsKameoDlcModelName(filename) || listed.count(filename) != 0) {
+    std::ifstream in(list_path);
+    if (!in) {
       continue;
     }
 
-    if (!list_ended_with_newline || wrote_any) {
-      out << '\n';
+    std::set<std::string> listed;
+    std::string line;
+    bool list_ended_with_newline = true;
+    while (std::getline(in, line)) {
+      if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+      }
+      if (!line.empty()) {
+        listed.insert(line);
+      }
+      list_ended_with_newline = false;
     }
-    out << filename;
-    listed.insert(filename);
-    wrote_any = true;
+    if (in.eof()) {
+      in.clear();
+      in.seekg(0, std::ios::end);
+      const auto size = in.tellg();
+      if (size > 0) {
+        in.seekg(-1, std::ios::end);
+        char last = '\0';
+        in.get(last);
+        list_ended_with_newline = last == '\n';
+      }
+    }
+
+    std::ofstream out(list_path, std::ios::app);
+    if (!out) {
+      continue;
+    }
+
+    bool wrote_any = false;
+    for (const auto& entry : std::filesystem::directory_iterator(pkg_dir)) {
+      if (!entry.is_regular_file()) {
+        continue;
+      }
+
+      const std::string filename = entry.path().filename().string();
+      if (!IsKameoDlcModelName(filename) || listed.count(filename) != 0) {
+        continue;
+      }
+
+      if (!list_ended_with_newline || wrote_any) {
+        out << '\n';
+      }
+      out << filename;
+      listed.insert(filename);
+      wrote_any = true;
+    }
   }
 }

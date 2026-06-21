@@ -8,6 +8,7 @@
 
 namespace {
 
+
 // Maps an integer swap request to a DLC suffix string (e.g. 1000 → "xmas1",
 // 42 → "42"). Returns nullptr for out-of-range values.
 const char* KameoDlcSwapSuffix(int request) {

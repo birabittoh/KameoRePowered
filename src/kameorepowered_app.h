@@ -28,7 +28,9 @@ class KameorepoweredApp : public rex::ReXApp {
   }
 
   void OnPreSetup(rex::RuntimeConfig& config) override {
+#ifndef KAMEO_TU
     SyncKameoDlcListForCustomModels();
+#endif
 #ifdef _WIN32
     veh_handle_ = InstallGuestFpExceptionHandlerWin();
 #endif

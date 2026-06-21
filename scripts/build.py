@@ -234,6 +234,15 @@ def derive_tu_manifest(manifest_path, base_config, overrides_path):
     manifest_text = open(manifest_path).read().replace(
         f'"{os.path.basename(base_config)}"', f'"{derived_config}"'
     )
+    for key in ("setjmp_address", "longjmp_address"):
+        if key in overrides:
+            new_val = f"0x{overrides[key]:08X}"
+            manifest_text = re.sub(
+                rf"^(\s*{key}\s*=\s*)0x[0-9A-Fa-f]+",
+                rf"\g<1>{new_val}",
+                manifest_text,
+                flags=re.MULTILINE,
+            )
     tu_manifest = ".tu_build.toml"  # deliberately not '*_manifest.toml'
     with open(tu_manifest, "w") as f:
         f.write(manifest_text)
@@ -314,11 +323,8 @@ def main():
         else:
             print(f"warning: {overrides} not found; using vanilla codegen hints", file=sys.stderr)
     elif os.path.exists(sibling_patch):
-        print(
-            f"warning: '{sibling_patch}' is present and will be baked into this build by "
-            f"codegen. Remove it or pass --tu for an explicit title-update build.",
-            file=sys.stderr,
-        )
+        print(f"+ rm {sibling_patch} (not a TU build)")
+        os.remove(sibling_patch)
 
     run([rexglue, "codegen", codegen_manifest])
     run(["cmake", "--preset", preset] + cmake_configure_args)

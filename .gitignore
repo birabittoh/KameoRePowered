@@ -57,3 +57,6 @@ __pycache__/
 
 # Locally built libraries
 /local/
+generated_vanilla/
+.vanilla_manifest.toml
+CLAUDE.md

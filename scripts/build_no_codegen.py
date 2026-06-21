@@ -191,11 +191,8 @@ def main():
         else:
             print(f"warning: {overrides} not found; using vanilla codegen hints", file=sys.stderr)
     elif os.path.exists(sibling_patch):
-        print(
-            f"warning: '{sibling_patch}' is present and will be baked into this build by "
-            f"codegen. Remove it or pass --tu for an explicit title-update build.",
-            file=sys.stderr,
-        )
+        print(f"+ rm {sibling_patch} (not a TU build)")
+        os.remove(sibling_patch)
 
     # codegen status ignored (temporary workaround)
     print(f"+ {rexglue} codegen {codegen_manifest}")
