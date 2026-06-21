@@ -56,39 +56,49 @@ Extract your legally dumped ISO directly into `assets/`:
 extract-xiso -d assets "Kameo - Elements of Power (USA).iso"
 ```
 
-`assets/default.xex` must exist before running codegen.
+### 4. Build
 
-### 4. Run codegen
+Use this script:
 
 ```bash
-sdk/bin/rexglue codegen kameorepowered_config.toml
+# Vanilla
+python scripts/build.py
+
+# Title Update
+python scripts/build.py --tu /path/to/TU_*
 ```
 
-### 5. Build
+### 5. DLC (optional)
 
-```bash
+Place your DLC content packages into the emulator save-data directory:
+
+```
 # Linux
-cmake --preset linux-amd64-release -DCMAKE_PREFIX_PATH="sdk"
-cmake --build --preset linux-amd64-release -- -j$(nproc)
-```
+~/.local/share/kameorepowered/0000000000000000/4D5307D2/00000002/
 
-```powershell
 # Windows
-cmake --preset win-amd64-release -DCMAKE_PREFIX_PATH="sdk"
-cmake --build --preset win-amd64-release -- -j $env:NUMBER_OF_PROCESSORS
+%USERPROFILE%\Documents\kameorepowered\0000000000000000\4D5307D2\00000002\
 ```
 
-Symlink assets into the build output so the binary can find them:
+Then extract them:
 
 ```bash
-# Linux
-ln -sf "$PWD/assets" out/build/linux-amd64-release/assets
+python scripts/extract-dlc.py
 ```
 
-```powershell
-# Windows
-New-Item -ItemType Junction -Path out/build/win-amd64-release/assets -Target "$PWD/assets"
+**Non-English languages:** the game hardcodes loading DLC string tables from `English/`. If you play in another language, pass `--language` to copy your language's strings into the English directory:
+
+```bash
+python scripts/extract-dlc.py --language Italian
 ```
+
+### 6. Run
+
+```bash
+python scripts/run.py
+```
+
+The run script sets up the library path, GPU offload variables, and passes `--game_data_root` and `--update_data_root` (if a TU build extracted update data) automatically.
 
 ## Options
 
