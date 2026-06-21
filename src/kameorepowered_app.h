@@ -79,10 +79,28 @@ class KameorepoweredApp : public rex::ReXApp {
     // No symlink needed for English (lang=1): the game hardcodes D:\english,
     // which already resolves to the English folder. Registering english->English
     // creates a cycle on case-insensitive filesystems.
+    //
+    // Some localizations ship stub .plf files (16 bytes) and a slightly
+    // different .lvl. Redirecting the whole directory breaks UI icons.
+    // Instead, only redirect files whose localized version is non-trivial
+    // (> 64 bytes), falling back to English for stubs.
     if (lang > 1 && lang < std::size(kLangFolders) && kLangFolders[lang]) {
       auto* vfs = runtime()->file_system();
-      std::string target = std::string("\\Device\\Harddisk0\\Partition1\\") + kLangFolders[lang];
-      vfs->RegisterSymbolicLink("\\Device\\Harddisk0\\Partition1\\english", target);
+      namespace fs = std::filesystem;
+      auto game_root = runtime()->game_data_root();
+      auto lang_dir = game_root / kLangFolders[lang];
+      std::string eng_prefix = "\\Device\\Harddisk0\\Partition1\\english\\";
+      std::string lang_prefix = std::string("\\Device\\Harddisk0\\Partition1\\")
+                                + kLangFolders[lang] + "\\";
+      if (fs::is_directory(lang_dir)) {
+        for (const auto& entry : fs::directory_iterator(lang_dir)) {
+          if (!entry.is_regular_file() || entry.file_size() <= 64) {
+            continue;
+          }
+          auto name = entry.path().filename().string();
+          vfs->RegisterSymbolicLink(eng_prefix + name, lang_prefix + name);
+        }
+      }
     }
 #ifndef _WIN32
     // Install after SDK setup so we override any SDK-installed SIGFPE handler.
