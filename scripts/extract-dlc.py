@@ -59,7 +59,7 @@ def is_stfs_package(path):
         return False
 
 
-def extract_package(pkg_path, out_dir, language=None):
+def extract_package(pkg_path, out_dir):
     with open(pkg_path, "rb") as f:
         pkg_data = f.read()
     stfs = extract_tu.Stfs(pkg_data)
@@ -82,22 +82,6 @@ def extract_package(pkg_path, out_dir, language=None):
         with open(dest, "wb") as f:
             f.write(data)
         count += 1
-
-    # The game hardcodes loading strings from "English/" inside each DLC
-    # content package. When the user's language is not English, copy the
-    # target language's files into English/ so the game loads localized
-    # strings. The original English files are kept as fallback for any
-    # files that don't exist in the target language.
-    if language and language.lower() != "english":
-        import shutil
-        lang_dir = os.path.join(out_dir, language)
-        eng_dir = os.path.join(out_dir, "English")
-        if os.path.isdir(lang_dir) and os.path.isdir(eng_dir):
-            eng_files_lower = {f.lower(): f for f in os.listdir(eng_dir)}
-            for src_name in os.listdir(lang_dir):
-                eng_name = eng_files_lower.get(src_name.lower(), src_name)
-                shutil.copy2(os.path.join(lang_dir, src_name),
-                             os.path.join(eng_dir, eng_name))
 
     return pkg_data, count
 
@@ -146,10 +130,6 @@ def main():
     p.add_argument("--data-dir", metavar="DIR", help="Override the data directory (default: platform default)")
     p.add_argument("--xuid", default="0000000000000000", help="XUID directory name (default: all zeros)")
     p.add_argument("--content-type", default="00000002", help="Content type directory name (default: 00000002)")
-    p.add_argument("--language", metavar="LANG",
-                   help="Copy this language's string tables into English/ so the "
-                        "game loads them (e.g. Italian). English files are kept as "
-                        "fallback for anything missing in the target language.")
     args = p.parse_args()
 
     project_name = load_project_name()
@@ -217,7 +197,7 @@ def main():
         os.rename(path, tmp)
         try:
             os.makedirs(out_dir, exist_ok=True)
-            pkg_data, n = extract_package(tmp, out_dir, language=args.language)
+            pkg_data, n = extract_package(tmp, out_dir)
             write_content_header(pkg_data, name, data_dir, xuid, title_id, content_type)
             os.remove(tmp)
             print(f"{name}: extracted {n} file(s)")
