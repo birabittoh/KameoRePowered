@@ -9,6 +9,23 @@
 std::atomic<uint32_t> g_kameo_infinite_energy_enabled{0};
 std::atomic<uint32_t> g_kameo_infinite_health_enabled{0};
 
+// The combat hooks reference a few guest addresses/functions directly. The title
+// update recompiled this region, relocating both the player-root table and the
+// helper functions, so resolve each to the address matching the build. These are
+// real calls (not the KAMEO_CALL_GUEST stub) — the combat hooks are active on
+// both vanilla and TU builds, unlike the still-stubbed DLC/audio hooks.
+#ifdef KAMEO_TU
+constexpr uint32_t kPlayerRootTable = 0x828683D8;
+#define KAMEO_GUEST_RECORD_GETTER __imp__sub_8217EC28  // energy/health record getter
+#define KAMEO_GUEST_UNLOCK_CHECK  __imp__sub_822F3CB8  // upgrade unlock check
+#define KAMEO_GUEST_HEALTH_OWNER  __imp__sub_822611D8  // health-record owner check
+#else
+constexpr uint32_t kPlayerRootTable = 0x8280D1A0;
+#define KAMEO_GUEST_RECORD_GETTER __imp__sub_8217CEC0
+#define KAMEO_GUEST_UNLOCK_CHECK  __imp__sub_822CC3C0
+#define KAMEO_GUEST_HEALTH_OWNER  __imp__sub_82252588
+#endif
+
 namespace {
 
 // Returns true if `health_record` belongs to one of the active player actors.
@@ -18,7 +35,7 @@ bool IsPlayerHealthRecord(uint8_t* base, uint32_t health_record) {
   }
 
   for (uint32_t i = 0; i < 4; ++i) {
-    const uint32_t player_root = REX_LOAD_U32(0x8280D1A0 + i * 4);
+    const uint32_t player_root = REX_LOAD_U32(kPlayerRootTable + i * 4);
     if (player_root == 0) {
       continue;
     }
@@ -41,7 +58,7 @@ bool IsPlayerHealthRecord(uint8_t* base, uint32_t health_record) {
 
   PPCContext call_ctx = *ctx_ptr;
   call_ctx.r3.u64 = owner;
-  KAMEO_CALL_GUEST(__imp__sub_82252588, call_ctx, base);
+  KAMEO_GUEST_HEALTH_OWNER(call_ctx, base);
   return call_ctx.r3.u32 != 0;
 }
 
@@ -49,7 +66,7 @@ bool IsPlayerHealthRecord(uint8_t* base, uint32_t health_record) {
 bool CallUnlockCheck(uint32_t id, PPCContext& source_ctx, uint8_t* base) {
   PPCContext call_ctx = source_ctx;
   call_ctx.r3.u64 = id;
-  KAMEO_CALL_GUEST(__imp__sub_822CC3C0, call_ctx, base);
+  KAMEO_GUEST_UNLOCK_CHECK(call_ctx, base);
   return call_ctx.r3.u32 != 0;
 }
 
@@ -72,7 +89,7 @@ int32_t OriginalEnergyMax(PPCContext& source_ctx, uint8_t* base) {
 
 // Returns the current energy value for the first player, or 0 if unavailable.
 int32_t OriginalEnergyCurrent(PPCContext& source_ctx, uint8_t* base) {
-  const uint32_t player_root = REX_LOAD_U32(0x8280D1A0);
+  const uint32_t player_root = REX_LOAD_U32(kPlayerRootTable);
   if (player_root == 0) {
     return 0;
   }
@@ -89,7 +106,7 @@ int32_t OriginalEnergyCurrent(PPCContext& source_ctx, uint8_t* base) {
 
   PPCContext call_ctx = source_ctx;
   call_ctx.r3.u64 = energy_record;
-  KAMEO_CALL_GUEST(__imp__sub_8217CEC0, call_ctx, base);
+  KAMEO_GUEST_RECORD_GETTER(call_ctx, base);
   if (call_ctx.r3.u32 == 0) {
     return 0;
   }
@@ -164,12 +181,12 @@ void KameoInfiniteEnergyMax(PPCRegister& r3) {
   r3.s64 = 999;
 }
 
-void KameoRefillMeterFloat(PPCRegister& r31, PPCRegister& r27) {
-  RefillMeterAt(r31, r27, 0);
+void KameoRefillMeterFloat(PPCRegister& dst, PPCRegister& src) {
+  RefillMeterAt(dst, src, 0);
 }
 
-void KameoRefillMeterFloatPlus4(PPCRegister& r31, PPCRegister& r27) {
-  RefillMeterAt(r31, r27, 4);
+void KameoRefillMeterFloatPlus4(PPCRegister& dst, PPCRegister& src) {
+  RefillMeterAt(dst, src, 4);
 }
 
 void KameoRefillHealth(PPCRegister& r29) {

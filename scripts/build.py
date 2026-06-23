@@ -176,6 +176,24 @@ def _format_function_entry(value):
     return "{ " + ", ".join(parts) + " }"
 
 
+def _format_toml_scalar(key, value):
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, int):
+        # Every numeric field of a midasm hook is a guest address.
+        return f"0x{value:08X}"
+    if isinstance(value, list):
+        return "[" + ", ".join(f'"{v}"' for v in value) + "]"
+    return f'"{value}"'
+
+
+def _format_midasm_hook(hook):
+    lines = ["[[midasm_hook]]"]
+    for k, v in hook.items():
+        lines.append(f"{k} = {_format_toml_scalar(k, v)}")
+    return lines
+
+
 def derive_tu_manifest(manifest_path, base_config, overrides_path):
     """Write a TU-only codegen config + manifest derived from the vanilla ones.
 
@@ -226,6 +244,17 @@ def derive_tu_manifest(manifest_path, base_config, overrides_path):
             + ", ".join(f"0x{a:X}" for a in sorted(missing)),
             file=sys.stderr,
         )
+
+    # Re-add the [[midasm_hook]] entries declared in the overrides. The vanilla
+    # hooks were stripped above because the update shifts their addresses; these
+    # are re-derived for the patched image (e.g. the combat hooks). Their host
+    # functions stay compiled in the TU build (they are not under -DKAMEO_TU).
+    tu_hooks = overrides.get("midasm_hook", [])
+    for hook in tu_hooks:
+        out_lines.append("")
+        out_lines += _format_midasm_hook(hook)
+    if tu_hooks:
+        print(f"+ title update: injected {len(tu_hooks)} re-derived midasm hook(s)")
 
     derived_config = ".tu_config.toml"
     with open(derived_config, "w") as f:

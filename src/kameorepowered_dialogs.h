@@ -110,6 +110,7 @@ class KameoModelDialog : public rex::ui::ImGuiDialog {
       return;
     }
 
+#ifndef KAMEO_TU
     bool enabled = g_kameo_dlc_swap_enabled.load(std::memory_order_acquire) != 0;
     if (ImGui::Checkbox("Enable Hotswap", &enabled)) {
       g_kameo_dlc_swap_enabled.store(enabled ? 1 : 0, std::memory_order_release);
@@ -122,6 +123,7 @@ class KameoModelDialog : public rex::ui::ImGuiDialog {
     }
 
     ImGui::Separator();
+#endif
     bool infinite_energy =
         g_kameo_infinite_energy_enabled.load(std::memory_order_acquire) != 0;
     if (ImGui::Checkbox("Infinite Energy", &infinite_energy)) {

@@ -23,12 +23,15 @@ extern "C" REX_FUNC(__imp__sub_826D21B0);  // SetBinkLanguageTrackVolume
 // Calls an original guest function from a hook.
 //
 // In a title-update build (-DKAMEO_TU) the functions these hooks call were
-// relocated by the update and are absent from the patched image. The custom
-// hooks are also stripped from the TU codegen config, so these call sites are
-// never reached at runtime in a TU build — they are compiled out here only so
-// the project links. The argument expression is still evaluated so locals stay
-// "used". TODO: re-derive the patched-image addresses and drop this shim to
-// restore the cheat/DLC/audio features on title-update builds.
+// relocated by the update and are absent from the patched image. The DLC hooks
+// are intentionally disabled on TU (the update doesn't need them); the audio
+// hooks still await reverse engineering of their patched-image addresses. Both
+// are stripped from the TU codegen config and never reached at runtime, so this
+// macro compiles their call sites out to keep the project linking (the argument
+// expression is still evaluated so locals stay "used"). The combat hooks ARE
+// re-derived (see kameorepowered_hooks_combat.cpp / kameorepowered_tu_overrides.toml)
+// and call their relocated guest functions directly, not through this shim.
+// TODO: reverse-engineer the audio hook addresses for the patched image.
 #ifdef KAMEO_TU
 #define KAMEO_CALL_GUEST(fn, ...) ((void)(__VA_ARGS__))
 #else
