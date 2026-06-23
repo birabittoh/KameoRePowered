@@ -13,15 +13,14 @@
 
 # Drop the vanilla [[midasm_hook]] entries for TU builds: they target vanilla
 # addresses the update shifts, and several change control flow, so injecting them
-# into the patched image is unsafe. The combat and audio-volume hooks below
-# replace the stripped ones at re-derived patched-image addresses. The DLC hooks
-# stay disabled because the update doesn't need them. Two audio hooks remain
-# disabled pending more RE: the startup-language override (its function was
-# recompiled+restructured and it intercepts an import) and the string-table
-# language reload (ReloadStringTable's signature changed + the speech-bank list
-# head is unresolved) — see tu-audio-hook-addresses. The [[midasm_hook]] entries
-# listed in THIS file are appended to the derived TU config after the vanilla
-# ones are stripped.
+# into the patched image is unsafe. The combat and audio hooks below replace the
+# stripped ones at re-derived patched-image addresses (volume, bink language
+# track, the per-frame pump, and the startup-language override). The DLC hooks
+# stay disabled because the update doesn't need them. One audio path remains
+# disabled pending more RE: the string-table language reload (ReloadStringTable's
+# signature changed + the speech-bank list head is unresolved) — see
+# tu-audio-hook-addresses. The [[midasm_hook]] entries listed in THIS file are
+# appended to the derived TU config after the vanilla ones are stripped.
 strip_midasm_hooks = true
 
 # The title update relocates setjmp/longjmp; override the vanilla manifest
@@ -146,3 +145,14 @@ registers = ["r27", "r29"]
 [[midasm_hook]]
 address = 0x8225E550
 name = "KameoProcessPendingDlcSwapMid"
+
+# Startup audio-language override: intercepts the XGetLanguage return (import
+# thunk 0x8270756C) right before the game's region remap, mirroring vanilla
+# 0x820B5228 (the function relocated +0xCE8 and the recompiler moved the captured
+# reg r31->r30, but the call+remap structure is identical). Without this the game
+# selects the FMV language set from the system language (English) — the intro
+# cutscene audio stays English even with user_language set. See tu-audio.
+[[midasm_hook]]
+address = 0x820B5F10
+name = "KameoOverrideAudioLanguage"
+registers = ["r3"]

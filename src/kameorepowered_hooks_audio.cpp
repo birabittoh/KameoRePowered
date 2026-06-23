@@ -6,6 +6,8 @@
 
 #include "kameorepowered_hooks_internal.h"
 
+#include <rex/logging.h>
+
 #include <cstring>
 #include <mutex>
 #include <string>
@@ -285,6 +287,8 @@ void KameoOverrideAudioLanguage(PPCRegister& r3) {
 
   const int32_t lang = g_kameo_audio_language.load(std::memory_order_acquire);
   if (lang >= 1 && lang <= 9) {
+    // Low-noise confirmation: XGetLanguage is called rarely, not per-frame.
+    REXLOG_INFO("[kameo-lang] override XGetLanguage {} -> {}", r3.u32, lang);
     r3.s64 = lang;
   }
 }
