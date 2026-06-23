@@ -13,13 +13,15 @@
 
 # Drop the vanilla [[midasm_hook]] entries for TU builds: they target vanilla
 # addresses the update shifts, and several change control flow, so injecting them
-# into the patched image is unsafe. The combat hooks below replace the stripped
-# ones at re-derived patched-image addresses. The DLC hooks stay disabled because
-# the update doesn't need them; the audio hooks stay disabled pending reverse
-# engineering of their patched-image addresses (their host call sites are stubbed
-# via -DKAMEO_TU, see KAMEO_CALL_GUEST). The [[midasm_hook]] entries listed in
-# THIS file are appended to the derived TU config after the vanilla ones are
-# stripped.
+# into the patched image is unsafe. The combat and audio-volume hooks below
+# replace the stripped ones at re-derived patched-image addresses. The DLC hooks
+# stay disabled because the update doesn't need them. Two audio hooks remain
+# disabled pending more RE: the startup-language override (its function was
+# recompiled+restructured and it intercepts an import) and the string-table
+# language reload (ReloadStringTable's signature changed + the speech-bank list
+# head is unresolved) — see tu-audio-hook-addresses. The [[midasm_hook]] entries
+# listed in THIS file are appended to the derived TU config after the vanilla
+# ones are stripped.
 strip_midasm_hooks = true
 
 # The title update relocates setjmp/longjmp; override the vanilla manifest
@@ -113,3 +115,34 @@ address = 0x821809F8
 name = "KameoRefillHealth"
 registers = ["r29"]
 after_instruction = true
+
+# Audio volume hooks re-derived for the patched image. The volume region was
+# relocated (not recompiled), so registers match vanilla; verified per-site.
+# Host code in src/kameorepowered_hooks_audio.cpp. See tu-audio-hook-addresses.
+# (KameoOverrideAudioLanguage and the string-table language reload are NOT here —
+# see the strip_midasm_hooks note above.)
+
+# Per-category volume scaling — entry of SetCategoryVolume (sub_8230C050).
+[[midasm_hook]]
+address = 0x82335D38
+name = "KameoOverrideVolume"
+registers = ["r3", "f1"]
+
+# Bink FMV master volume — entry of SetBinkLanguageTrackVolume (sub_826D21B0).
+[[midasm_hook]]
+address = 0x8270A9B0
+name = "KameoOverrideBinkVolume"
+registers = ["r5"]
+
+# Bink language-track selection + volume (mid-function).
+[[midasm_hook]]
+address = 0x82273890
+name = "KameoSetBinkLanguageTrackVolume"
+registers = ["r27", "r29"]
+
+# Per-frame pump that replays cached volumes (and, on vanilla, reloads the
+# language string table + processes DLC swaps). On TU it drives the volume
+# replay; the DLC swap is inert (flag off) and the language reload is disabled.
+[[midasm_hook]]
+address = 0x8225E550
+name = "KameoProcessPendingDlcSwapMid"

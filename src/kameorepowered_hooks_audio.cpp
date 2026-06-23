@@ -24,6 +24,21 @@ std::atomic<int32_t> g_kameo_language_dirty{0};
 std::atomic<int32_t> g_kameo_original_language{-1};
 std::atomic<int32_t> g_kameo_startup_language{1};
 
+// Build-specific audio guest addresses. The title update relocated/recompiled
+// this code. The volume + bink-language paths are fully re-derived and active on
+// both builds; these resolve their guest calls/globals to the matching image.
+// (The string-table language reload below is gated off on TU — see the TODO
+// there — and the startup-language override hook is not injected on TU at all.)
+#ifdef KAMEO_TU
+constexpr uint32_t kLangCodeGlobal = 0x827A9B64;
+#define KAMEO_GUEST_SET_CATEGORY_VOLUME __imp__sub_82335D38  // SetCategoryVolume
+#define KAMEO_GUEST_SET_BINK_LANG_TRACK __imp__sub_8270A9B0  // SetBinkLanguageTrackVolume
+#else
+constexpr uint32_t kLangCodeGlobal = 0x827556B4;
+#define KAMEO_GUEST_SET_CATEGORY_VOLUME __imp__sub_8230C050
+#define KAMEO_GUEST_SET_BINK_LANG_TRACK __imp__sub_826D21B0
+#endif
+
 namespace {
 
 // Cache of the most recent SetCategoryVolume(cat_ptr, volume) call per
@@ -67,6 +82,18 @@ void KameoReloadLanguageStringTable(PPCContext& ctx, uint8_t* base) {
   if (g_kameo_language_dirty.exchange(0, std::memory_order_acq_rel) == 0) {
     return;
   }
+
+#ifdef KAMEO_TU
+  // TODO(tu-audio): the patched-image string-table language reload is not safely
+  // wireable yet. UnloadStringTable (sub_82553A28) and ReloadStringTable
+  // (sub_820C1408) are located, but the update refactored ReloadStringTable to
+  // take the string-table name in r3 (vanilla ignored it), and the speech-bank
+  // list head (vanilla 0x82B732A4) is SDA-relative and unresolved. Until both are
+  // verified, skip the reload on TU so the pump only drives the volume replay.
+  (void)ctx;
+  (void)base;
+  return;
+#else
 
   int32_t lang = g_kameo_audio_language.load(std::memory_order_acquire);
   if (lang < 1 || lang > 9) {
@@ -120,6 +147,7 @@ void KameoReloadLanguageStringTable(PPCContext& ctx, uint8_t* base) {
     REX_STORE_U32(node + 60, 0);  // voice buf ptr  — overwritten by sub_8228A5B0
     REX_STORE_U32(node + 64, 0);  // voice buf size — overwritten on reload
   }
+#endif  // KAMEO_TU
 }
 
 void KameoReplayCachedVolumes(PPCContext& ctx, uint8_t* base) {
@@ -139,7 +167,7 @@ void KameoReplayCachedVolumes(PPCContext& ctx, uint8_t* base) {
     PPCContext call_ctx = ctx;
     call_ctx.r3.u64 = cat_ptr;
     call_ctx.f1.f64 = orig_f1;
-    KAMEO_CALL_GUEST(__imp__sub_8230C050, call_ctx, base);
+    KAMEO_GUEST_SET_CATEGORY_VOLUME(call_ctx, base);
   }
 }
 
@@ -210,7 +238,7 @@ void KameoSetBinkLanguageTrackVolume(PPCRegister& r27, PPCRegister& r29) {
   // before the opening FMV plays, so we can't rely on it for startup language.
   // Priority: runtime UI override (g_kameo_audio_language) > --user_language
   // (g_kameo_startup_language) > game's XGetLanguage result (0x827556B4).
-  uint32_t lang_code = REX_LOAD_U32(0x827556B4);
+  uint32_t lang_code = REX_LOAD_U32(kLangCodeGlobal);
   const int32_t audio_lang = g_kameo_audio_language.load(std::memory_order_acquire);
   const int32_t startup_lang = g_kameo_startup_language.load(std::memory_order_acquire);
   if (audio_lang >= 1) {
@@ -245,7 +273,7 @@ void KameoSetBinkLanguageTrackVolume(PPCRegister& r27, PPCRegister& r29) {
   ctx.r3.u64 = bink_handle;
   ctx.r4.u64 = lang_track;
   ctx.r5.u64 = vol;
-  KAMEO_CALL_GUEST(__imp__sub_826D21B0, ctx, base);
+  KAMEO_GUEST_SET_BINK_LANG_TRACK(ctx, base);
 }
 
 void KameoOverrideAudioLanguage(PPCRegister& r3) {

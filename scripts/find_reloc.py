@@ -39,8 +39,17 @@ def parse_dir(gen_dir):
     return va_map
 
 
-def norm(mn):
-    """Relocation-invariant form: drop absolute address operands."""
+def norm(mn, mode="addr"):
+    """Relocation-invariant form of a mnemonic line.
+
+    mode="addr": drop absolute address operands only (tight; good for code that
+        doesn't load relocated globals near the match window).
+    mode="ops":  keep the opcode but drop ALL operands. Survives relocated data
+        loads (lis/addi/li with decimal immediates that shift with the data), at
+        the cost of specificity — use a wider window to stay unique.
+    """
+    if mode == "ops":
+        return mn.split(None, 1)[0]
     return HEXADDR.sub("@", mn)
 
 
@@ -57,18 +66,19 @@ def contiguous(va_map, start, count):
 def main():
     van_dir, tu_dir, van_va = sys.argv[1], sys.argv[2], int(sys.argv[3], 16)
     window = int(sys.argv[4]) if len(sys.argv) > 4 else 24
+    mode = sys.argv[5] if len(sys.argv) > 5 else "addr"
 
     van = parse_dir(van_dir)
     tu = parse_dir(tu_dir)
 
     sig_raw = contiguous(van, van_va, window)
-    sig = [norm(x) for x in sig_raw]
+    sig = [norm(x, mode) for x in sig_raw]
     if len(sig) < window:
         print(f"warning: only {len(sig)} insns available at vanilla 0x{van_va:08X}")
 
     # Build ordered TU VA list and normalized stream.
     tu_vas = sorted(tu)
-    tu_norm = [norm(tu[v]) for v in tu_vas]
+    tu_norm = [norm(tu[v], mode) for v in tu_vas]
 
     hits = []
     n = len(sig)
