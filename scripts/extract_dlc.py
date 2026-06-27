@@ -25,10 +25,11 @@ import extract_tu
 
 STFS_MAGICS = {b"CON ", b"LIVE", b"PIRS"}
 
-# STFS header offsets for content metadata.
-OFF_DISPLAY_NAME = 0x411  # UTF-16 BE, 128 chars (256 bytes)
-OFF_TITLE_ID = 0x360      # be u32
-OFF_CONTENT_TYPE = 0x344  # be u32
+# STFS header offsets (see stfs_xbox.h: XContentHeader + XContentMetadata).
+OFF_LICENSES = 0x22C      # XContentLicense[16], each 0x10 bytes
+OFF_CONTENT_TYPE = 0x344  # be u32 (start of XContentMetadata)
+OFF_TITLE_ID = 0x360      # be u32 (execution_info.title_id)
+OFF_DISPLAY_NAME = 0x411  # UTF-16 BE, 128 chars (256 bytes) — English locale
 
 
 def load_project_name():
@@ -90,8 +91,7 @@ def write_content_header(pkg_data, pkg_name, data_dir, xuid, title_id, content_t
     """Generate the .header file the SDK's ContentManager needs to enumerate DLC.
 
     The header is an XCONTENT_AGGREGATE_DATA struct (0x148 bytes) followed by a
-    4-byte license_mask. We extract the display name, title ID, and content type
-    from the STFS package header and set license_mask to 0x80000000 (unlocked).
+    4-byte license_mask.
     """
     header = bytearray(0x148 + 4)
 
@@ -113,8 +113,9 @@ def write_content_header(pkg_data, pkg_name, data_dir, xuid, title_id, content_t
     tid = struct.unpack_from(">I", pkg_data, OFF_TITLE_ID)[0]
     struct.pack_into(">I", header, 0x13C, tid)
 
-    # license_mask = 0x80000000 (unlocked for all profiles)
-    struct.pack_into("<I", header, 0x148, 0x80000000)
+    # Grant all license bits so every model group passes the game's
+    # KameoDownloadableModelLicense checks (bits 0, 1, 31, etc.).
+    struct.pack_into("<I", header, 0x148, 0xFFFFFFFF)
 
     header_dir = os.path.join(data_dir, xuid, title_id, "Headers", content_type)
     os.makedirs(header_dir, exist_ok=True)
