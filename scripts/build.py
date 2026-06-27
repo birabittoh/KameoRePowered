@@ -194,6 +194,36 @@ def _format_midasm_hook(hook):
     return lines
 
 
+def derive_tu_manifest_standalone(manifest_path, tu_config):
+    """Write a TU manifest that points at the standalone TU config.
+
+    Reads setjmp/longjmp from the TU config and rewrites the manifest's
+    includes + addresses. Returns the temp manifest path.
+    """
+    import re
+
+    with open(tu_config, "rb") as f:
+        tu = tomllib.load(f)
+
+    base_config_name = load_manifest(manifest_path)["entrypoint"]["includes"][0]
+    manifest_text = open(manifest_path).read().replace(
+        f'"{base_config_name}"', f'"{tu_config}"'
+    )
+    for key in ("setjmp_address", "longjmp_address"):
+        if key in tu:
+            new_val = f"0x{tu[key]:08X}"
+            manifest_text = re.sub(
+                rf"^(\s*{key}\s*=\s*)0x[0-9A-Fa-f]+",
+                rf"\g<1>{new_val}",
+                manifest_text,
+                flags=re.MULTILINE,
+            )
+    tu_manifest = ".tu_build.toml"
+    with open(tu_manifest, "w") as f:
+        f.write(manifest_text)
+    return tu_manifest
+
+
 def derive_tu_manifest(manifest_path, base_config, overrides_path):
     """Write a TU-only codegen config + manifest derived from the vanilla ones.
 
@@ -343,14 +373,11 @@ def main():
     codegen_manifest = manifest_path
     if args.tu:
         _, tu_version = stage_title_update(args.tu, xex_path)
-        # Use TU-specific codegen hints (kameorepowered_tu_overrides.toml) so the
-        # patched image analyzes cleanly without touching the vanilla config.
-        overrides = "kameorepowered_tu_overrides.toml"
-        base_config = manifest["entrypoint"]["includes"][0]
-        if os.path.exists(overrides):
-            codegen_manifest, _ = derive_tu_manifest(manifest_path, base_config, overrides)
+        tu_config = "kameorepowered_tu_config.toml"
+        if os.path.exists(tu_config):
+            codegen_manifest = derive_tu_manifest_standalone(manifest_path, tu_config)
         else:
-            print(f"warning: {overrides} not found; using vanilla codegen hints", file=sys.stderr)
+            print(f"warning: {tu_config} not found; using vanilla codegen hints", file=sys.stderr)
     elif os.path.exists(sibling_patch):
         print(f"+ rm {sibling_patch} (not a TU build)")
         os.remove(sibling_patch)
