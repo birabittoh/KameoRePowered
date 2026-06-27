@@ -70,27 +70,22 @@ python scripts/build.py --tu /path/to/TU_*
 
 ### 5. DLC (optional)
 
-Place your DLC content packages into the emulator save-data directory:
+Place your DLC content packages (STFS files) into the emulator save-data directory and run the extraction script:
 
-```
+```bash
 # Linux
-~/.local/share/kameorepowered/0000000000000000/4D5307D2/00000002/
+mkdir -p ~/.local/share/kameorepowered/0000000000000000/4D5307D2/00000002/
+cp /path/to/dlc/* ~/.local/share/kameorepowered/0000000000000000/4D5307D2/00000002/
 
 # Windows
-%USERPROFILE%\Documents\kameorepowered\0000000000000000\4D5307D2\00000002\
+mkdir "%USERPROFILE%\Documents\kameorepowered\0000000000000000\4D5307D2\00000002"
+copy C:\path\to\dlc\* "%USERPROFILE%\Documents\kameorepowered\0000000000000000\4D5307D2\00000002"
+
+# Then extract
+python scripts/extract_dlc.py
 ```
 
-Then extract them:
-
-```bash
-python scripts/extract-dlc.py
-```
-
-**Non-English languages:** the game hardcodes loading DLC string tables from `English/`. If you play in another language, pass `--language` to copy your language's strings into the English directory:
-
-```bash
-python scripts/extract-dlc.py --language Italian
-```
+This replaces each raw STFS package with a directory of extracted files and generates the `.header` files needed for the game to detect and unlock the DLC.
 
 ### 6. Run
 
